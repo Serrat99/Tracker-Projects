@@ -1,6 +1,6 @@
 // Configuración de conexión de Supabase
-const SUPABASE_URL = "YOUR_SUPABASE_URL";
-const SUPABASE_ANON_KEY = "YOUR_SUPABASE_ANON_KEY";
+const SUPABASE_URL = https://hgghnalxypgunppnrqgg.supabase.co;
+const SUPABASE_ANON_KEY = sb_publishable_KanGD_oOzUo9YdRxTw5BhA_5rMzakRm;
 
 let supabaseClient = null;
 

@@ -151,7 +151,7 @@ function showFriendlyError(message) {
 }
 
 async function fetchProjectsFromSupabase() {
-    if (!supabaseClient || SUPABASE_URL === "YOUR_SUPABASE_URL") {
+    if (!window.supabaseClient || window.SUPABASE_URL === "YOUR_SUPABASE_URL") {
         console.error("Supabase no está configurado. Por favor, actualiza config.js con tus credenciales.");
         showFriendlyError("El servicio de base de datos no está configurado. Por favor configure las credenciales de Supabase en config.js.");
         state.projects = JSON.parse(JSON.stringify(MOCK_PROJECTS));
@@ -159,7 +159,7 @@ async function fetchProjectsFromSupabase() {
     }
     
     try {
-        const { data, error } = await supabaseClient
+        const { data, error } = await window.supabaseClient
             .from('projects')
             .select('*')
             .order('id', { ascending: true });
@@ -185,7 +185,7 @@ async function fetchProjectsFromSupabase() {
                 closeDate: p.closeDate,
                 comments: p.comments
             }));
-            const { data: inserted, error: insertError } = await supabaseClient
+            const { data: inserted, error: insertError } = await window.supabaseClient
                 .from('projects')
                 .insert(cleanMocks)
                 .select();
@@ -208,9 +208,9 @@ async function fetchProjectsFromSupabase() {
 }
 
 function setupSupabaseRealtime() {
-    if (!supabaseClient || SUPABASE_URL === "YOUR_SUPABASE_URL") return;
+    if (!window.supabaseClient || window.SUPABASE_URL === "YOUR_SUPABASE_URL") return;
     
-    supabaseClient
+    window.supabaseClient
         .channel('schema-db-changes')
         .on(
             'postgres_changes',
@@ -1232,7 +1232,7 @@ function renderProjectsTable() {
 async function deleteProject(id) {
     if (confirm("¿Está seguro de eliminar este proyecto?\n\nPresione Aceptar para Confirmar Eliminación o Cancelar.")) {
         try {
-            const { error } = await supabaseClient
+            const { error } = await window.supabaseClient
                 .from('projects')
                 .delete()
                 .eq('id', id);
@@ -1265,7 +1265,7 @@ async function duplicateProject(id) {
     };
     
     try {
-        const { error } = await supabaseClient
+        const { error } = await window.supabaseClient
             .from('projects')
             .insert([clone]);
         if (error) throw error;
@@ -1678,7 +1678,7 @@ function importProjectsFromExcel(file) {
                 projectsToUpsert.push(newProj);
             });
             
-            const { error } = await supabaseClient
+            const { error } = await window.supabaseClient
                 .from('projects')
                 .upsert(projectsToUpsert, { onConflict: 'id' });
                 
@@ -1812,13 +1812,13 @@ async function inicializarAplicacion() {
         try {
             if (idInput) {
                 const id = parseInt(idInput);
-                const { error } = await supabaseClient
+                const { error } = await window.supabaseClient
                     .from('projects')
                     .update(projectData)
                     .eq('id', id);
                 if (error) throw error;
             } else {
-                const { error } = await supabaseClient
+                const { error } = await window.supabaseClient
                     .from('projects')
                     .insert([projectData]);
                 if (error) throw error;

@@ -199,8 +199,11 @@ async function fetchProjectsFromSupabase() {
         const banner = document.getElementById('supabase-error-banner');
         if (banner) banner.remove();
     } catch (err) {
-        console.error("Error al consultar proyectos desde Supabase:", err);
-        showFriendlyError("No se pudo conectar a la base de datos compartida. Mostrando datos locales temporales.");
+        console.error("Error detallado al consultar proyectos desde Supabase:", err);
+        if (err.message) console.error("Mensaje:", err.message);
+        if (err.details) console.error("Detalles:", err.details);
+        if (err.hint) console.error("Pista:", err.hint);
+        showFriendlyError("Error al consultar proyectos en Supabase (" + (err.message || err) + "). Se muestran datos locales temporales.");
         if (state.projects.length === 0) {
             state.projects = JSON.parse(JSON.stringify(MOCK_PROJECTS));
         }
@@ -1246,9 +1249,11 @@ async function deleteProject(id) {
                 renderProjectsTable();
             }
         } catch (err) {
-            console.error("Error al eliminar el proyecto en Supabase:", err);
-            showFriendlyError("No se pudo eliminar el proyecto.");
-            alert("Error al eliminar el proyecto: " + (err.message || err));
+            console.error("Error detallado al eliminar el proyecto en Supabase:", err);
+            if (err.message) console.error("Mensaje:", err.message);
+            if (err.details) console.error("Detalles:", err.details);
+            showFriendlyError("No se pudo eliminar el proyecto de Supabase. (Error: " + (err.message || err) + ")");
+            alert("Error al eliminar el proyecto: " + (err.message || JSON.stringify(err)));
         }
     }
 }
@@ -1274,9 +1279,11 @@ async function duplicateProject(id) {
         populateFilters();
         renderProjectsTable();
     } catch (err) {
-        console.error("Error al duplicar el proyecto en Supabase:", err);
-        showFriendlyError("No se pudo duplicar el proyecto.");
-        alert("Error al duplicar el proyecto: " + (err.message || err));
+        console.error("Error detallado al duplicar el proyecto en Supabase:", err);
+        if (err.message) console.error("Mensaje:", err.message);
+        if (err.details) console.error("Detalles:", err.details);
+        showFriendlyError("No se pudo duplicar el proyecto en Supabase. (Error: " + (err.message || err) + ")");
+        alert("Error al duplicar el proyecto: " + (err.message || JSON.stringify(err)));
     }
 }
 
@@ -1834,9 +1841,12 @@ async function inicializarAplicacion() {
                 switchView('projects');
             }
         } catch (err) {
-            console.error("Error al guardar el proyecto en Supabase:", err);
-            showFriendlyError("No se pudo guardar el proyecto en la base de datos.");
-            alert("Error al guardar el proyecto: " + (err.message || err));
+            console.error("Error detallado al guardar el proyecto en Supabase:", err);
+            if (err.message) console.error("Mensaje:", err.message);
+            if (err.details) console.error("Detalles:", err.details);
+            if (err.hint) console.error("Pista:", err.hint);
+            showFriendlyError("No se pudo guardar el proyecto en Supabase. (Error: " + (err.message || err) + ")");
+            alert("Error al guardar el proyecto: " + (err.message || JSON.stringify(err)));
         }
     });
 

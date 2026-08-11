@@ -1,0 +1,657 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Lean Project Tracker</title>
+    <!-- Fonts -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
+    <!-- FontAwesome for Icons -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <!-- ChartJS for Power BI like widgets -->
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <!-- SheetJS for Excel integration -->
+    <script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js"></script>
+    <!-- jsPDF and html2canvas for PDF dashboard printing -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
+    <!-- Stylesheet -->
+    <link rel="stylesheet" href="styles.css">
+</head>
+<body class="dark-theme">
+    <div class="app-container">
+        <!-- Sidebar Navigation -->
+        <aside class="sidebar">
+            <div class="logo-area">
+                <div class="logo-icon"><i class="fa-solid fa-chart-line"></i></div>
+                <div class="logo-text">Lean <span>Tracker</span></div>
+            </div>
+            
+            <nav class="nav-menu">
+                <a href="#" class="nav-link active" data-view="dashboard">
+                    <i class="fa-solid fa-gauge-high"></i> <span>Dashboard</span>
+                </a>
+                <a href="#" class="nav-link" data-view="projects">
+                    <i class="fa-solid fa-list-check"></i> <span>Proyectos</span>
+                </a>
+                <a href="#" class="nav-link" data-view="reports">
+                    <i class="fa-solid fa-chart-pie"></i> <span>Reportes</span>
+                </a>
+            </nav>
+            
+            <div class="sidebar-footer">
+                <button id="theme-toggle" class="theme-btn">
+                    <i class="fa-solid fa-sun"></i> <span>Modo Claro</span>
+                </button>
+            </div>
+        </aside>
+
+        <!-- Main Workspace -->
+        <main class="main-content">
+            <!-- Header/Topbar -->
+            <header class="topbar">
+                <div class="search-container">
+                    <i class="fa-solid fa-magnifying-glass"></i>
+                    <input type="text" id="global-search" placeholder="Buscar proyectos, responsables, áreas...">
+                </div>
+                
+                <div class="topbar-actions">
+                    <!-- Notifications Dropdown Trigger -->
+                    <div class="notification-trigger" id="notif-btn">
+                        <i class="fa-solid fa-bell"></i>
+                        <span class="badge" id="notif-badge">0</span>
+                        
+                        <!-- Notifications Panel -->
+                        <div class="notification-panel" id="notif-panel">
+                            <div class="panel-header">
+                                <h3>Alertas de Proyectos</h3>
+                                <button id="clear-notif-btn" class="clear-btn">Limpiar todo</button>
+                            </div>
+                            <div class="notif-list" id="notif-list">
+                                <!-- Dynamic notifications load here -->
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <button class="btn btn-primary" id="btn-new-project-top">
+                        <i class="fa-solid fa-plus"></i> Nuevo Proyecto
+                    </button>
+                </div>
+            </header>
+
+            <!-- Container for dynamic Views -->
+            <div class="content-body">
+                
+                <!-- 1. Executive Dashboard View -->
+                <section id="view-dashboard" class="app-view active">
+                    <div class="view-header">
+                        <h2>Dashboard de Proyectos Lean</h2>
+                        <div class="action-row">
+                            <button class="btn btn-secondary" id="btn-export-pdf"><i class="fa-solid fa-file-pdf"></i> Exportar a PDF</button>
+                        </div>
+                    </div>
+
+                    <!-- Project KPI Cards -->
+                    <div class="kpi-grid">
+                        <div class="kpi-card" data-filter="all">
+                            <div class="kpi-header">
+                                <span>Total Proyectos</span>
+                                <i class="fa-solid fa-folder-open text-blue"></i>
+                            </div>
+                            <div class="kpi-value" id="kpi-total">0</div>
+                        </div>
+                        <div class="kpi-card" data-filter="active">
+                            <div class="kpi-header">
+                                <span>Proyectos Activos</span>
+                                <i class="fa-solid fa-circle-play text-green"></i>
+                            </div>
+                            <div class="kpi-value" id="kpi-active">0</div>
+                        </div>
+                        <div class="kpi-card" data-filter="closed">
+                            <div class="kpi-header">
+                                <span>Proyectos Cerrados</span>
+                                <i class="fa-solid fa-circle-check text-purple"></i>
+                            </div>
+                            <div class="kpi-value" id="kpi-closed">0</div>
+                        </div>
+                        <div class="kpi-card">
+                            <div class="kpi-header">
+                                <span>Aging Promedio</span>
+                                <i class="fa-solid fa-hourglass-half text-orange"></i>
+                            </div>
+                            <div class="kpi-value" id="kpi-avg-aging">0d</div>
+                        </div>
+                        <div class="kpi-card" data-filter="risk">
+                            <div class="kpi-header">
+                                <span>Proyectos en Riesgo</span>
+                                <i class="fa-solid fa-triangle-exclamation text-yellow"></i>
+                            </div>
+                            <div class="kpi-value text-warning" id="kpi-at-risk">0</div>
+                        </div>
+                    </div>
+
+                    <!-- Tablero Ejecutivo de Tarjetas de Proyectos -->
+                    <div class="section-title margin-top-lg">
+                        <h3>Tablero de Control de Proyectos</h3>
+                    </div>
+                    <div class="project-cards-grid" id="dashboard-project-cards">
+                        <!-- Dynamic project cards will load here -->
+                    </div>
+
+                    <!-- Permanent Legend and Max Aging Widgets -->
+                    <div class="dashboard-tables-grid margin-top-md">
+                        <div class="smart-table-card">
+                            <div class="card-table-header">
+                                <span><i class="fa-solid fa-hourglass-end text-red"></i> Proyecto con Mayor Aging</span>
+                            </div>
+                            <div style="padding: 10px; font-size: 13px; line-height: 1.6;">
+                                <div><strong>Proyecto:</strong> <span id="max-aging-proj-name">-</span></div>
+                                <div><strong>Responsable:</strong> <span id="max-aging-proj-resp">-</span></div>
+                                <div><strong>Días de Aging:</strong> <span id="max-aging-proj-days" class="text-danger" style="font-weight: 700;">-</span></div>
+                            </div>
+                        </div>
+                        
+                        <div class="smart-table-card">
+                            <div class="card-table-header">
+                                <span><i class="fa-solid fa-hourglass text-red"></i> Proyecto Más Antiguo</span>
+                            </div>
+                            <div style="padding: 10px; font-size: 13px; line-height: 1.6;">
+                                <div><strong>Proyecto:</strong> <span id="oldest-proj-name">-</span></div>
+                                <div><strong>Responsable:</strong> <span id="oldest-proj-resp">-</span></div>
+                                <div><strong>Aging Actual:</strong> <span id="oldest-proj-days" class="text-danger" style="font-weight: 700;">-</span></div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Interactive Charts Section -->
+                    <div class="charts-section-grid">
+                        <div class="chart-container-card">
+                            <h4>Proyectos por Status</h4>
+                            <div class="chart-wrapper"><canvas id="chart-status"></canvas></div>
+                        </div>
+                        <div class="chart-container-card">
+                            <h4>Avance Promedio por Categoría</h4>
+                            <div class="chart-wrapper"><canvas id="chart-avg-progress-category"></canvas></div>
+                        </div>
+                        <div class="chart-container-card">
+                            <h4>Proyectos por Lean Responsable</h4>
+                            <div class="chart-wrapper"><canvas id="chart-responsible"></canvas></div>
+                        </div>
+                        <div class="chart-container-card">
+                            <h4>Proyectos por Aging</h4>
+                            <div class="chart-wrapper"><canvas id="chart-aging-dist"></canvas></div>
+                        </div>
+                        <div class="chart-container-card">
+                            <h4>Proyectos por Categoría</h4>
+                            <div class="chart-wrapper"><canvas id="chart-category"></canvas></div>
+                        </div>
+                        <div class="chart-container-card">
+                            <h4>Aging General de Proyectos (Gauge)</h4>
+                            <div class="chart-wrapper" style="height: 200px;"><canvas id="chart-gauge-aging"></canvas></div>
+                            <div style="text-align: center; margin-top: 10px; font-weight: 700; font-size: 16px;" id="gauge-avg-value">0d</div>
+                        </div>
+                        <div class="chart-container-card full-width-chart">
+                            <h4>Proyectos Cerrados por Mes</h4>
+                            <div class="chart-wrapper"><canvas id="chart-monthly-trend"></canvas></div>
+                        </div>
+                    </div>
+
+                    <!-- Detalle de proyectos seleccionados por drilldown -->
+                    <div class="smart-table-card margin-top-md" id="drilldown-section" style="display: none; width: 100%; margin-bottom: 25px;">
+                        <div class="card-table-header" style="display: flex; justify-content: space-between; align-items: center;">
+                            <span><i class="fa-solid fa-list-check text-blue"></i> Detalle de Proyectos: <span id="drilldown-filter-name" style="font-weight: 700; color: var(--primary-light);"></span></span>
+                            <button class="btn btn-secondary btn-sm" id="btn-close-drilldown" style="padding: 4px 10px; font-size: 12px; cursor: pointer;"><i class="fa-solid fa-xmark"></i> Cerrar</button>
+                        </div>
+                        <div class="table-scroll" style="overflow-x: auto; padding: 10px;">
+                            <table class="table-mini" id="table-drilldown" style="width: 100%;">
+                                <thead>
+                                    <tr>
+                                        <th>Nombre del Proyecto</th>
+                                        <th>Lean Responsable</th>
+                                        <th>Categoría</th>
+                                        <th>Status</th>
+                                        <th>% Avance</th>
+                                        <th>Aging</th>
+                                    </tr>
+                                </thead>
+                                <tbody id="table-drilldown-body"></tbody>
+                            </table>
+                        </div>
+                    </div>
+
+                    <!-- Agrupación por Categoría -->
+                    <div class="section-title margin-top-lg">
+                        <h3>Avance y Aging por Categorías Lean</h3>
+                    </div>
+                    <div id="category-groupings-container">
+                        <!-- Dynamic category cards & tables will be rendered here -->
+                    </div>
+
+                    <!-- Smart Analytics Tables -->
+                    <div class="section-title margin-top-lg">
+                        <h3>Tablas Inteligentes de Análisis Rápido</h3>
+                    </div>
+                    <div class="dashboard-tables-grid">
+                        <!-- Table 1: Top 10 proyectos con mayor Aging -->
+                        <div class="smart-table-card">
+                            <div class="card-table-header">
+                                <span><i class="fa-solid fa-hourglass-end text-red"></i> Top 10 Proyectos con Mayor Aging</span>
+                            </div>
+                            <div class="table-scroll">
+                                <table class="table-mini" id="table-highest-aging">
+                                    <thead>
+                                        <tr>
+                                            <th>Proyecto</th>
+                                            <th>Responsable</th>
+                                            <th>Aging</th>
+                                            <th>Semáforo</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody></tbody>
+                                </table>
+                            </div>
+                        </div>
+
+                        <!-- Table 2: Proyectos por vencer -->
+                        <div class="smart-table-card">
+                            <div class="card-table-header">
+                                <span><i class="fa-solid fa-clock text-yellow"></i> Proyectos Próximos a Vencer (30 días)</span>
+                            </div>
+                            <div class="table-scroll">
+                                <table class="table-mini" id="table-expiring-soon">
+                                    <thead>
+                                        <tr>
+                                            <th>Proyecto</th>
+                                            <th>Responsable</th>
+                                            <th>Compromiso</th>
+                                            <th>Estado</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody></tbody>
+                                </table>
+                            </div>
+                        </div>
+
+                        <!-- Table 3: Proyectos abiertos por responsable -->
+                        <div class="smart-table-card">
+                            <div class="card-table-header">
+                                <span><i class="fa-solid fa-user-group text-blue"></i> Proyectos Abiertos por Responsable</span>
+                            </div>
+                            <div class="table-scroll">
+                                <table class="table-mini" id="table-open-by-resp">
+                                    <thead>
+                                        <tr>
+                                            <th>Responsable</th>
+                                            <th>Proyectos Abiertos</th>
+                                            <th>Aging Promedio</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody></tbody>
+                                </table>
+                            </div>
+                        </div>
+
+                        <!-- Table 4: Proyectos en riesgo -->
+                        <div class="smart-table-card">
+                            <div class="card-table-header">
+                                <span><i class="fa-solid fa-triangle-exclamation text-yellow"></i> Proyectos en Riesgo</span>
+                            </div>
+                            <div class="table-scroll">
+                                <table class="table-mini" id="table-at-risk">
+                                    <thead>
+                                        <tr>
+                                            <th>Proyecto</th>
+                                            <th>Responsable</th>
+                                            <th>Área</th>
+                                            <th>Avance</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody></tbody>
+                                </table>
+                            </div>
+                        </div>
+                        
+                        <!-- Table 5: Proyectos en Escalación -->
+                        <div class="smart-table-card">
+                            <div class="card-table-header">
+                                <span><i class="fa-solid fa-skull-crossbones text-red"></i> Proyectos en Escalación (+90 días)</span>
+                            </div>
+                            <div class="table-scroll">
+                                <table class="table-mini" id="table-escalation">
+                                    <thead>
+                                        <tr>
+                                            <th>Proyecto</th>
+                                            <th>Responsable</th>
+                                            <th>Aging</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody></tbody>
+                                </table>
+                            </div>
+                        </div>
+                    </div>
+                </section>
+
+                <!-- 2. Project List View -->
+                <section id="view-projects" class="app-view">
+                    <div class="view-header">
+                        <h2>Lista de Proyectos Lean</h2>
+                        <div class="action-row">
+                            <button class="btn btn-success" id="btn-export-excel"><i class="fa-solid fa-file-excel"></i> Descargar Reporte Excel</button>
+                            <button class="btn btn-secondary" id="btn-import-excel-trigger"><i class="fa-solid fa-file-import"></i> Importar Excel</button>
+                            <button class="btn btn-outline" id="btn-download-template"><i class="fa-solid fa-download"></i> Plantilla Excel</button>
+                            <button class="btn btn-primary" id="btn-new-project-list"><i class="fa-solid fa-plus"></i> Nuevo Proyecto</button>
+                        </div>
+                    </div>
+
+                    <!-- Advanced Filters Bar -->
+                    <div class="filter-panel-card">
+                        <div class="filter-panel-title">
+                            <i class="fa-solid fa-filter"></i> Filtros y Segmentadores de Datos
+                        </div>
+                        <div class="filters-grid">
+                            <div class="filter-group">
+                                <label for="filter-lean-resp">Lean Responsable</label>
+                                <select id="filter-lean-resp"><option value="">Todos</option></select>
+                            </div>
+                            <div class="filter-group">
+                                <label for="filter-owner">Owner del Proyecto</label>
+                                <select id="filter-owner"><option value="">Todos</option></select>
+                            </div>
+                            <div class="filter-group">
+                                <label for="filter-co-leader">Co-Líder</label>
+                                <select id="filter-co-leader"><option value="">Todos</option></select>
+                            </div>
+                            <div class="filter-group">
+                                <label for="filter-area">Área</label>
+                                <select id="filter-area"><option value="">Todas</option></select>
+                            </div>
+                            <div class="filter-group">
+                                <label for="filter-category">Categoría del Proyecto</label>
+                                <select id="filter-category">
+                                    <option value="">Todas</option>
+                                    <option value="Kaizen">Kaizen</option>
+                                    <option value="SGA">SGA</option>
+                                    <option value="Poka Yoke">Poka Yoke</option>
+                                    <option value="Six Sigma">Six Sigma</option>
+                                    <option value="App">App</option>
+                                </select>
+                            </div>
+                            <div class="filter-group">
+                                <label for="filter-status">Status</label>
+                                <select id="filter-status">
+                                    <option value="">Todos</option>
+                                    <option value="Planeación">Planeación</option>
+                                    <option value="En Proceso">En Proceso</option>
+                                    <option value="En Riesgo">En Riesgo</option>
+                                    <option value="Cerrado">Cerrado</option>
+                                    <option value="Cancelado">Cancelado</option>
+                                </select>
+                            </div>
+                            <div class="filter-group">
+                                <label for="filter-priority">Prioridad</label>
+                                <select id="filter-priority">
+                                    <option value="">Todas</option>
+                                    <option value="Alta">Alta</option>
+                                    <option value="Media">Media</option>
+                                    <option value="Baja">Baja</option>
+                                </select>
+                            </div>
+                            <div class="filter-group">
+                                <label for="filter-aging">Aging (Días)</label>
+                                <select id="filter-aging">
+                                    <option value="">Todos</option>
+                                    <option value="Normal">Normal (0-30 días)</option>
+                                    <option value="Atención">Atención (31-60 días)</option>
+                                    <option value="Crítico">Crítico (61-90 días)</option>
+                                    <option value="Escalación">Escalación (Más de 90 días)</option>
+                                </select>
+                            </div>
+                        </div>
+                        <div class="filter-footer">
+                            <button class="btn btn-text text-danger" id="btn-clear-filters">Limpiar Filtros</button>
+                        </div>
+                    </div>
+
+                    <!-- Hidden file inputs for Excel import -->
+                    <input type="file" id="excel-file-input" style="display: none;" accept=".xlsx, .xls">
+
+                    <!-- Projects Main Table -->
+                    <div class="table-card">
+                        <div class="table-container">
+                            <table id="main-projects-table">
+                                <thead>
+                                    <tr>
+                                        <th class="sortable" data-sort="id">ID <i class="fa-solid fa-sort"></i></th>
+                                        <th class="sortable" data-sort="name">Nombre del Proyecto <i class="fa-solid fa-sort"></i></th>
+                                        <th class="sortable" data-sort="leanResponsable">Lean Responsable <i class="fa-solid fa-sort"></i></th>
+                                        <th class="sortable" data-sort="owner">Owner del Proyecto <i class="fa-solid fa-sort"></i></th>
+                                        <th class="sortable" data-sort="coLeader">Co-Líder <i class="fa-solid fa-sort"></i></th>
+                                        <th class="sortable" data-sort="area">Área <i class="fa-solid fa-sort"></i></th>
+                                        <th class="sortable" data-sort="category">Categoría del Proyecto <i class="fa-solid fa-sort"></i></th>
+                                        <th class="sortable" data-sort="priority">Prioridad <i class="fa-solid fa-sort"></i></th>
+                                        <th class="sortable" data-sort="status">Status <i class="fa-solid fa-sort"></i></th>
+                                        <th class="sortable" data-sort="startDate">Fecha Inicio <i class="fa-solid fa-sort"></i></th>
+                                        <th class="sortable" data-sort="targetDate">Fecha Compromiso <i class="fa-solid fa-sort"></i></th>
+                                        <th class="sortable" data-sort="closeDate">Fecha Cierre <i class="fa-solid fa-sort"></i></th>
+                                        <th class="sortable" data-sort="aging">Aging (Días) <i class="fa-solid fa-sort"></i></th>
+                                        <th class="sortable" data-sort="agingState">Estado Aging <i class="fa-solid fa-sort"></i></th>
+                                        <th class="sortable" data-sort="progress">Porcentaje de Avance <i class="fa-solid fa-sort"></i></th>
+                                        <th class="sortable" data-sort="comments">Comentarios <i class="fa-solid fa-sort"></i></th>
+                                        <th>Acciones</th>
+                                    </tr>
+                                </thead>
+                                <tbody id="projects-table-body">
+                                    <!-- Dynamic rows loaded here -->
+                                </tbody>
+                            </table>
+                        </div>
+                        
+                        <!-- Pagination controls -->
+                        <div style="display: flex; justify-content: space-between; align-items: center; padding: 15px 20px; background-color: var(--bg-card); border-top: 1px solid var(--border-color);">
+                            <div style="font-size: 13px; color: var(--text-muted);">
+                                Mostrando registros <span id="pag-start">0</span> al <span id="pag-end">0</span> de <span id="pag-total">0</span>
+                            </div>
+                            <div style="display: flex; gap: 8px;">
+                                <button class="btn btn-secondary btn-sm" id="btn-page-prev"><i class="fa-solid fa-chevron-left"></i> Anterior</button>
+                                <button class="btn btn-secondary btn-sm" id="btn-page-next">Siguiente <i class="fa-solid fa-chevron-right"></i></button>
+                            </div>
+                        </div>
+                    </div>
+                </section>
+
+                <!-- 3. Project Detail View -->
+                <section id="view-project-detail" class="app-view">
+                    <div class="view-header">
+                        <div class="detail-header-left">
+                            <button class="btn btn-icon-only btn-secondary" id="btn-back-to-projects">
+                                <i class="fa-solid fa-arrow-left"></i>
+                            </button>
+                            <h2 id="detail-project-title">Detalles del Proyecto</h2>
+                        </div>
+                        <div class="action-row">
+                            <button class="btn btn-secondary" id="btn-edit-project-current"><i class="fa-solid fa-pen-to-square"></i> Editar</button>
+                            <button class="btn btn-danger" id="btn-delete-project-current"><i class="fa-solid fa-trash"></i> Eliminar</button>
+                        </div>
+                    </div>
+
+                    <div class="detail-grid-single">
+                        <!-- Main project attributes -->
+                        <div class="detail-card main-attributes">
+                            <h3>Información General</h3>
+                            <div class="info-grid">
+                                <div class="info-item"><strong>ID:</strong> <span id="dt-id">-</span></div>
+                                <div class="info-item"><strong>Status:</strong> <span id="dt-status">-</span></div>
+                                <div class="info-item"><strong>Prioridad:</strong> <span id="dt-priority">-</span></div>
+                                <div class="info-item"><strong>Lean Responsable:</strong> <span id="dt-lean-resp">-</span></div>
+                                <div class="info-item"><strong>Owner del Proyecto:</strong> <span id="dt-owner">-</span></div>
+                                <div class="info-item"><strong>Co-Líder:</strong> <span id="dt-co-leader">-</span></div>
+                                <div class="info-item"><strong>Área:</strong> <span id="dt-area">-</span></div>
+                                <div class="info-item"><strong>Categoría:</strong> <span id="dt-category">-</span></div>
+                                <div class="info-item"><strong>Fecha de Inicio:</strong> <span id="dt-start-date">-</span></div>
+                                <div class="info-item"><strong>Fecha Compromiso:</strong> <span id="dt-target-date">-</span></div>
+                                <div class="info-item"><strong>Fecha de Cierre:</strong> <span id="dt-close-date">-</span></div>
+                                <div class="info-item"><strong>Aging:</strong> <span id="dt-aging">-</span></div>
+                                <div class="info-item"><strong>Estado Aging:</strong> <span id="dt-aging-state">-</span></div>
+                                <div class="info-item">
+                                    <strong>Avance:</strong> 
+                                    <span id="dt-progress-percent">0%</span>
+                                    <div class="progress-bar-container margin-top-sm">
+                                        <div class="progress-bar-fill" id="dt-progress-bar" style="width: 0%;"></div>
+                                    </div>
+                                </div>
+                            <div class="details-text-blocks">
+                                <div class="text-block">
+                                    <strong>Descripción:</strong>
+                                    <p id="dt-description">-</p>
+                                </div>
+                                <div class="text-block">
+                                    <strong>Comentarios:</strong>
+                                    <p id="dt-comments">-</p>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </section>
+
+                <!-- 4. Reports View -->
+                <section id="view-reports" class="app-view">
+                    <div class="view-header">
+                        <h2>Reportes Ejecutivos</h2>
+                    </div>
+
+                    <div class="reports-grid">
+                        <div class="report-card">
+                            <h3>Distribución de Proyectos por Status</h3>
+                            <div class="chart-wrapper"><canvas id="chart-report-status"></canvas></div>
+                        </div>
+                        <div class="report-card">
+                            <h3>Proyectos Cerrados por Mes</h3>
+                            <div class="chart-wrapper"><canvas id="chart-report-closed-months"></canvas></div>
+                        </div>
+                        <div class="report-card">
+                            <h3>Proyectos por Categoría</h3>
+                            <div class="chart-wrapper"><canvas id="chart-report-category"></canvas></div>
+                        </div>
+                        <div class="report-card">
+                            <h3>Proyectos por Responsable</h3>
+                            <div class="chart-wrapper"><canvas id="chart-report-responsible"></canvas></div>
+                        </div>
+                        <div class="report-card full-width-report">
+                            <h3>Proyectos por Área y Nivel de Prioridad</h3>
+                            <div class="chart-wrapper"><canvas id="chart-report-area-priority"></canvas></div>
+                        </div>
+                    </div>
+                </section>
+
+            </div>
+        </main>
+    </div>
+
+    <!-- Project Form Modal (New/Edit) -->
+    <div class="modal" id="project-modal">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h3 id="modal-project-title">Registrar Proyecto</h3>
+                <button class="modal-close-btn" id="btn-close-project-modal">&times;</button>
+            </div>
+            <div class="modal-body">
+                <form id="project-form">
+                    <input type="hidden" id="form-project-id">
+                    
+                    <div class="form-section-title">Información Básica</div>
+                    <div class="form-grid-3">
+                        <div class="form-group col-span-3">
+                            <label for="form-name">Nombre del Proyecto *</label>
+                            <input type="text" id="form-name" required placeholder="Ej. Reducción de scrap en línea 3">
+                        </div>
+                        <div class="form-group">
+                            <label for="form-lean-resp">Lean Responsable *</label>
+                            <input type="text" id="form-lean-resp" required placeholder="Nombre del facilitador Lean">
+                        </div>
+                        <div class="form-group">
+                            <label for="form-owner">Owner del Proyecto *</label>
+                            <input type="text" id="form-owner" required placeholder="Líder del proceso de área">
+                        </div>
+                        <div class="form-group">
+                            <label for="form-co-leader">Co-Líder</label>
+                            <input type="text" id="form-co-leader" placeholder="Co-facilitador opcional">
+                        </div>
+                        <div class="form-group">
+                            <label for="form-area">Área *</label>
+                            <input type="text" id="form-area" required placeholder="Ej. Ensamble, Calidad, Logística">
+                        </div>
+                        <div class="form-group">
+                            <label for="form-category">Categoría del Proyecto *</label>
+                            <select id="form-category" required>
+                                <option value="Kaizen">Kaizen</option>
+                                <option value="SGA">SGA</option>
+                                <option value="Poka Yoke">Poka Yoke</option>
+                                <option value="Six Sigma">Six Sigma</option>
+                                <option value="App">App</option>
+                            </select>
+                        </div>
+                        <div class="form-group">
+                            <label for="form-priority">Prioridad *</label>
+                            <select id="form-priority" required>
+                                <option value="Alta">Alta</option>
+                                <option value="Media">Media</option>
+                                <option value="Baja">Baja</option>
+                            </select>
+                        </div>
+                        <div class="form-group">
+                            <label for="form-status">Status *</label>
+                            <select id="form-status" required>
+                                <option value="Planeación">Planeación</option>
+                                <option value="En Proceso">En Proceso</option>
+                                <option value="En Riesgo">En Riesgo</option>
+                                <option value="Cerrado">Cerrado</option>
+                                <option value="Cancelado">Cancelado</option>
+                            </select>
+                        </div>
+                        <div class="form-group">
+                            <label for="form-progress">Porcentaje de Avance (%) *</label>
+                            <input type="number" id="form-progress" min="0" max="100" required value="0">
+                        </div>
+                        <div class="form-group">
+                            <label for="form-start-date">Fecha de Inicio *</label>
+                            <input type="date" id="form-start-date" required>
+                        </div>
+                        <div class="form-group">
+                            <label for="form-target-date">Fecha Compromiso *</label>
+                            <input type="date" id="form-target-date" required>
+                        </div>
+                        <div class="form-group" id="form-close-date-container">
+                            <label for="form-close-date">Fecha de Cierre</label>
+                            <input type="date" id="form-close-date">
+                        </div>
+                    </div>
+
+                    <div class="form-section-title margin-top-md">Descripción & Bitácora</div>
+                    <div class="form-group">
+                        <label for="form-description">Descripción del Proyecto *</label>
+                        <textarea id="form-description" rows="3" required placeholder="Descripción breve de los objetivos y alcance..."></textarea>
+                    </div>
+                    <div class="form-group">
+                        <label for="form-comments">Comentarios / Bitácora de Seguimiento</label>
+                        <textarea id="form-comments" rows="4" placeholder="Notas, bitácoras o actualizaciones de seguimiento..."></textarea>
+                    </div>
+
+                    <div class="modal-footer margin-top-lg">
+                        <button type="button" class="btn btn-secondary" id="btn-cancel-project-modal">Cancelar</button>
+                        <button type="submit" class="btn btn-primary">Guardar Proyecto</button>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+
+    <!-- Supabase CDN and Configuration -->
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+    <script src="config.js"></script>
+    <!-- Script Application Logic -->
+    <script src="app.js"></script>
+</body>
+</html>

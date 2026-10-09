@@ -278,14 +278,41 @@ function getSemaphoreClass(aging, status) {
     return 'sem-rojo-oscuro';
 }
 
-// 4. Persistence Engine (Migrated to Supabase)
+// 4. Persistence Engine (Migrated 100% to Supabase)
+function showToastNotification(message, type = 'error') {
+    let container = document.getElementById('toast-container');
+    if (!container) {
+        container = document.createElement('div');
+        container.id = 'toast-container';
+        container.style.cssText = 'position: fixed; bottom: 20px; right: 20px; z-index: 9999; display: flex; flex-direction: column; gap: 10px; max-width: 420px; pointer-events: none;';
+        document.body.appendChild(container);
+    }
+
+    const toast = document.createElement('div');
+    const isError = type === 'error';
+    const bg = isError ? 'rgba(220, 38, 38, 0.95)' : 'rgba(16, 185, 129, 0.95)';
+    const icon = isError ? 'fa-triangle-exclamation' : 'fa-circle-check';
+
+    toast.style.cssText = `background: ${bg}; color: white; padding: 12px 16px; border-radius: 8px; box-shadow: 0 10px 15px -3px rgba(0,0,0,0.3); display: flex; align-items: center; gap: 10px; font-size: 13px; font-family: "Outfit", sans-serif; pointer-events: auto; animation: fadeIn 0.3s ease;`;
+    toast.innerHTML = `
+        <i class="fa-solid ${icon}" style="font-size: 16px;"></i>
+        <span style="flex: 1;">${message}</span>
+        <button style="background: none; border: none; color: white; cursor: pointer; font-size: 16px; margin-left: 8px; line-height: 1;" onclick="this.parentElement.remove()">&times;</button>
+    `;
+
+    container.appendChild(toast);
+    setTimeout(() => {
+        if (toast.parentElement) toast.remove();
+    }, 4500);
+}
+
 function showFriendlyError(message) {
     const errorBannerId = 'supabase-error-banner';
     let banner = document.getElementById(errorBannerId);
     if (!banner) {
         banner = document.createElement('div');
         banner.id = errorBannerId;
-        banner.style.cssText = 'background: rgba(220, 53, 69, 0.9); color: white; padding: 12px 20px; text-align: center; font-weight: 500; position: fixed; top: 0; left: 0; right: 0; z-index: 9999; display: flex; justify-content: space-between; align-items: center; box-shadow: 0 4px 6px rgba(0,0,0,0.1); font-family: "Outfit", sans-serif;';
+        banner.style.cssText = 'background: rgba(220, 38, 38, 0.95); color: white; padding: 12px 20px; text-align: center; font-weight: 500; position: fixed; top: 0; left: 0; right: 0; z-index: 9999; display: flex; justify-content: space-between; align-items: center; box-shadow: 0 4px 6px rgba(0,0,0,0.1); font-family: "Outfit", sans-serif;';
         
         const textSpan = document.createElement('span');
         textSpan.id = 'supabase-error-text';
@@ -306,8 +333,8 @@ function showFriendlyError(message) {
 
 async function fetchProjectsFromSupabase() {
     if (!window.supabaseClient || window.SUPABASE_URL === "YOUR_SUPABASE_URL") {
-        console.error("Supabase no está configurado. Por favor, actualiza config.js con tus credenciales.");
-        showFriendlyError("El servicio de base de datos no está configurado. Por favor configure las credenciales de Supabase en config.js.");
+        console.error("Supabase no está configurado.");
+        showFriendlyError("El servicio de base de datos no está configurado en config.js.");
         state.projects = JSON.parse(JSON.stringify(MOCK_PROJECTS));
         return;
     }
@@ -322,7 +349,7 @@ async function fetchProjectsFromSupabase() {
         
         state.projects = data || [];
         if (state.projects.length === 0) {
-            console.log("Base de datos vacía. Cargando datos demo en Supabase...");
+            console.log("Base de datos vacía. Cargando datos demo en Supabase (projects)...");
             const cleanMocks = MOCK_PROJECTS.map(({ id, ...p }) => ({
                 name: p.name,
                 description: p.description,
@@ -353,11 +380,8 @@ async function fetchProjectsFromSupabase() {
         const banner = document.getElementById('supabase-error-banner');
         if (banner) banner.remove();
     } catch (err) {
-        console.error("Error detallado al consultar proyectos desde Supabase:", err);
-        if (err.message) console.error("Mensaje:", err.message);
-        if (err.details) console.error("Detalles:", err.details);
-        if (err.hint) console.error("Pista:", err.hint);
-        showFriendlyError("Error al consultar proyectos en Supabase (" + (err.message || err) + "). Se muestran datos locales temporales.");
+        console.error("Error al consultar proyectos desde Supabase:", err);
+        showToastNotification("Error al cargar proyectos de Supabase: " + (err.message || err), "error");
         if (state.projects.length === 0) {
             state.projects = JSON.parse(JSON.stringify(MOCK_PROJECTS));
         }
@@ -369,29 +393,47 @@ function setupSupabaseRealtime() {
     
     window.supabaseClient
         .channel('schema-db-changes')
-        .on(
-            'postgres_changes',
-            {
-                event: '*',
-                schema: 'public',
-                table: 'projects'
-            },
-            async (payload) => {
-                console.log('Cambio detectado en tiempo real:', payload);
-                await fetchProjectsFromSupabase();
-                populateFilters();
-                if (state.currentView === 'dashboard') {
-                    renderDashboard();
-                } else if (state.currentView === 'projects') {
-                    renderProjectsTable();
-                } else if (state.currentView === 'reports') {
-                    renderReportsCharts();
-                } else if (state.currentView === 'project-detail' && state.currentProjectId) {
-                    viewProjectDetails(state.currentProjectId);
-                }
-            }
-        )
+        .on('postgres_changes', { event: '*', schema: 'public', table: 'projects' }, async (payload) => {
+            console.log('Tiempo real Supabase (projects):', payload);
+            await fetchProjectsFromSupabase();
+            populateFilters();
+            refreshCurrentView();
+        })
+        .on('postgres_changes', { event: '*', schema: 'public', table: 'plan_activities' }, async (payload) => {
+            console.log('Tiempo real Supabase (plan_activities):', payload);
+            await fetchPlanActivitiesFromSupabase();
+            refreshCurrentView();
+        })
+        .on('postgres_changes', { event: '*', schema: 'public', table: 'plan_actividades' }, async (payload) => {
+            console.log('Tiempo real Supabase (plan_actividades):', payload);
+            await fetchPlanActivitiesFromSupabase();
+            refreshCurrentView();
+        })
+        .on('postgres_changes', { event: '*', schema: 'public', table: 'responsables' }, async (payload) => {
+            console.log('Tiempo real Supabase (responsables):', payload);
+            await fetchResponsablesFromSupabase();
+            refreshCurrentView();
+        })
+        .on('postgres_changes', { event: '*', schema: 'public', table: 'savings_records' }, async (payload) => {
+            console.log('Tiempo real Supabase (savings_records):', payload);
+            await fetchSavingsRecordsFromSupabase();
+            refreshCurrentView();
+        })
         .subscribe();
+}
+
+function refreshCurrentView() {
+    if (state.currentView === 'dashboard') {
+        renderDashboard();
+    } else if (state.currentView === 'projects') {
+        renderProjectsTable();
+    } else if (state.currentView === 'reports') {
+        renderReportsCharts();
+    } else if (state.currentView === 'plan-actividades') {
+        renderPlanActividadesView();
+    } else if (state.currentView === 'project-detail' && state.currentProjectId) {
+        viewProjectDetails(state.currentProjectId);
+    }
 }
 
 function applyTheme() {
@@ -1901,42 +1943,71 @@ function exportDashboardToPDF() {
 let planCharts = {};
 
 async function fetchPlanActivitiesFromSupabase() {
-    let localData = localStorage.getItem('lean_tracker_plan_activities');
-    if (localData) {
-        try {
-            state.planActivities = JSON.parse(localData);
-        } catch (e) {
-            console.error("Error al cargar plan de actividades local:", e);
-        }
-    }
-
-    if (!state.planActivities || state.planActivities.length === 0) {
+    if (!window.supabaseClient || window.SUPABASE_URL === "YOUR_SUPABASE_URL") {
+        console.error("Supabase no está configurado.");
+        showFriendlyError("El servicio de base de datos no está configurado en config.js.");
         state.planActivities = JSON.parse(JSON.stringify(MOCK_ACTIVITIES));
-        localStorage.setItem('lean_tracker_plan_activities', JSON.stringify(state.planActivities));
+        return;
     }
 
-    if (window.supabaseClient && window.SUPABASE_URL !== "YOUR_SUPABASE_URL") {
-        try {
-            const { data, error } = await window.supabaseClient
+    try {
+        let { data, error } = await window.supabaseClient
+            .from('plan_activities')
+            .select('*')
+            .order('id', { ascending: false });
+
+        if (error && (error.code === 'PGRST301' || (error.message && (error.message.includes('relation') || error.message.includes('does not exist'))))) {
+            const res2 = await window.supabaseClient
                 .from('plan_actividades')
                 .select('*')
                 .order('id', { ascending: false });
+            data = res2.data;
+            error = res2.error;
+        }
 
-            if (!error && data && data.length > 0) {
-                state.planActivities = data;
-                localStorage.setItem('lean_tracker_plan_activities', JSON.stringify(state.planActivities));
-            } else if (!error && data && data.length === 0) {
-                const { data: inserted } = await window.supabaseClient
+        if (error) {
+            console.error("Error al consultar plan_activities en Supabase:", error);
+            showToastNotification("Error de Supabase al consultar actividades: " + error.message, "error");
+            if (!state.planActivities || state.planActivities.length === 0) {
+                state.planActivities = JSON.parse(JSON.stringify(MOCK_ACTIVITIES));
+            }
+            return;
+        }
+
+        if (data && data.length > 0) {
+            state.planActivities = data.map(item => {
+                if (typeof item.savingsLines === 'string') {
+                    try { item.savingsLines = JSON.parse(item.savingsLines); } catch (e) {}
+                }
+                if (typeof item.attachments === 'string') {
+                    try { item.attachments = JSON.parse(item.attachments); } catch (e) {}
+                }
+                return item;
+            });
+        } else {
+            console.log("Base de datos de actividades vacía. Cargando MOCK_ACTIVITIES en Supabase...");
+            state.planActivities = JSON.parse(JSON.stringify(MOCK_ACTIVITIES));
+            
+            const { data: inserted, error: insertErr } = await window.supabaseClient
+                .from('plan_activities')
+                .insert(state.planActivities)
+                .select();
+
+            if (insertErr) {
+                const { data: inserted2 } = await window.supabaseClient
                     .from('plan_actividades')
                     .insert(state.planActivities)
                     .select();
-                if (inserted && inserted.length > 0) {
-                    state.planActivities = inserted;
-                    localStorage.setItem('lean_tracker_plan_activities', JSON.stringify(state.planActivities));
-                }
+                if (inserted2 && inserted2.length > 0) state.planActivities = inserted2;
+            } else if (inserted && inserted.length > 0) {
+                state.planActivities = inserted;
             }
-        } catch (err) {
-            console.log("Supabase table 'plan_actividades' no configurada aún, usando LocalStorage.");
+        }
+    } catch (err) {
+        console.error("Excepción al consultar actividades en Supabase:", err);
+        showToastNotification("Error al conectar con Supabase (" + (err.message || err) + ")", "error");
+        if (!state.planActivities || state.planActivities.length === 0) {
+            state.planActivities = JSON.parse(JSON.stringify(MOCK_ACTIVITIES));
         }
     }
 }
@@ -1948,32 +2019,67 @@ async function savePlanActivityToPersistence(item) {
     } else {
         state.planActivities.unshift(item);
     }
-    localStorage.setItem('lean_tracker_plan_activities', JSON.stringify(state.planActivities));
 
-    if (window.supabaseClient && window.SUPABASE_URL !== "YOUR_SUPABASE_URL") {
-        try {
-            await window.supabaseClient
+    if (!window.supabaseClient || window.SUPABASE_URL === "YOUR_SUPABASE_URL") {
+        showToastNotification("Supabase no configurado. Cambio en memoria.", "error");
+        return;
+    }
+
+    try {
+        let { error } = await window.supabaseClient
+            .from('plan_activities')
+            .upsert([item]);
+
+        if (error && (error.code === 'PGRST301' || (error.message && (error.message.includes('relation') || error.message.includes('does not exist'))))) {
+            const res2 = await window.supabaseClient
                 .from('plan_actividades')
                 .upsert([item]);
-        } catch (err) {
-            console.warn("Sincronización Supabase diferida (guardado en LocalStorage):", err);
+            error = res2.error;
         }
+
+        if (error) {
+            console.error("Error al guardar actividad en Supabase:", error);
+            showToastNotification("Error de Supabase al guardar la actividad: " + error.message, "error");
+        } else {
+            showToastNotification("Actividad guardada en Supabase correctamente.", "success");
+        }
+    } catch (err) {
+        console.error("Excepción al guardar actividad en Supabase:", err);
+        showToastNotification("Error al conectar con Supabase: " + (err.message || err), "error");
     }
 }
 
 async function deletePlanActivityFromPersistence(id) {
     state.planActivities = state.planActivities.filter(b => b.id !== id);
-    localStorage.setItem('lean_tracker_plan_activities', JSON.stringify(state.planActivities));
 
-    if (window.supabaseClient && window.SUPABASE_URL !== "YOUR_SUPABASE_URL") {
-        try {
-            await window.supabaseClient
+    if (!window.supabaseClient || window.SUPABASE_URL === "YOUR_SUPABASE_URL") {
+        showToastNotification("Supabase no configurado. Eliminado en memoria.", "error");
+        return;
+    }
+
+    try {
+        let { error } = await window.supabaseClient
+            .from('plan_activities')
+            .delete()
+            .eq('id', id);
+
+        if (error && (error.code === 'PGRST301' || (error.message && (error.message.includes('relation') || error.message.includes('does not exist'))))) {
+            const res2 = await window.supabaseClient
                 .from('plan_actividades')
                 .delete()
                 .eq('id', id);
-        } catch (err) {
-            console.warn("No se pudo eliminar actividad en Supabase:", err);
+            error = res2.error;
         }
+
+        if (error) {
+            console.error("Error al eliminar actividad en Supabase:", error);
+            showToastNotification("Error de Supabase al eliminar actividad: " + error.message, "error");
+        } else {
+            showToastNotification("Actividad eliminada de Supabase.", "success");
+        }
+    } catch (err) {
+        console.error("Excepción al eliminar actividad en Supabase:", err);
+        showToastNotification("Error al conectar con Supabase: " + (err.message || err), "error");
     }
 }
 
@@ -2322,40 +2428,20 @@ const DEFAULT_SAVINGS_RECORDS = [
 ];
 
 function loadResponsablesFromStorage() {
-    let raw = localStorage.getItem('lean_tracker_responsables');
-    if (raw) {
-        try {
-            state.responsables = JSON.parse(raw);
-        } catch (e) {
-            state.responsables = JSON.parse(JSON.stringify(DEFAULT_RESPONSABLES));
-        }
-    } else {
-        state.responsables = JSON.parse(JSON.stringify(DEFAULT_RESPONSABLES));
-        localStorage.setItem('lean_tracker_responsables', JSON.stringify(state.responsables));
-    }
+    fetchResponsablesFromSupabase();
 }
 
 function saveResponsablesToStorage() {
-    localStorage.setItem('lean_tracker_responsables', JSON.stringify(state.responsables));
-    updateTeamUsersDatalist();
+    saveResponsablesToSupabase();
 }
 
 function loadSavingsRecordsFromStorage() {
-    let raw = localStorage.getItem('lean_tracker_savings_records');
-    if (raw) {
-        try {
-            state.savingsRecords = JSON.parse(raw);
-        } catch (e) {
-            state.savingsRecords = JSON.parse(JSON.stringify(DEFAULT_SAVINGS_RECORDS));
-        }
-    } else {
-        state.savingsRecords = JSON.parse(JSON.stringify(DEFAULT_SAVINGS_RECORDS));
-        localStorage.setItem('lean_tracker_savings_records', JSON.stringify(state.savingsRecords));
-    }
+    fetchSavingsRecordsFromSupabase();
 }
 
-function saveSavingsRecordsToStorage() {
-    localStorage.setItem('lean_tracker_savings_records', JSON.stringify(state.savingsRecords));
+function saveSavingsRecordsToStorage(item) {
+    if (item) saveSavingsRecordToSupabase(item);
+    else saveResponsablesToSupabase();
 }
 
 function updateTeamUsersDatalist() {
@@ -2548,21 +2634,187 @@ function getResponsablesMetricsFromActivities() {
     return result;
 }
 
-function loadResponsablesFromStorage() {
-    state.responsables = getResponsablesMetricsFromActivities();
+async function fetchResponsablesFromSupabase() {
+    if (!window.supabaseClient || window.SUPABASE_URL === "YOUR_SUPABASE_URL") {
+        state.responsables = getResponsablesMetricsFromActivities();
+        updateTeamUsersDatalist();
+        return;
+    }
+
+    try {
+        const { data, error } = await window.supabaseClient
+            .from('responsables')
+            .select('*')
+            .order('name', { ascending: true });
+
+        if (error) {
+            console.error("Error al consultar responsables en Supabase:", error);
+            showToastNotification("Error al cargar tabla 'responsables': " + error.message, "error");
+            state.responsables = getResponsablesMetricsFromActivities();
+        } else if (data && data.length > 0) {
+            state.responsables = data;
+        } else {
+            console.log("Tabla 'responsables' vacía en Supabase. Seeding...");
+            const computed = getResponsablesMetricsFromActivities();
+            state.responsables = computed;
+
+            const { data: inserted, error: insertErr } = await window.supabaseClient
+                .from('responsables')
+                .insert(computed)
+                .select();
+
+            if (!insertErr && inserted && inserted.length > 0) {
+                state.responsables = inserted;
+            }
+        }
+    } catch (err) {
+        console.error("Excepción al cargar responsables de Supabase:", err);
+        state.responsables = getResponsablesMetricsFromActivities();
+    }
     updateTeamUsersDatalist();
+}
+
+async function saveResponsablesToSupabase() {
+    updateTeamUsersDatalist();
+    if (window.supabaseClient && window.SUPABASE_URL !== "YOUR_SUPABASE_URL") {
+        try {
+            const { error } = await window.supabaseClient
+                .from('responsables')
+                .upsert(state.responsables);
+
+            if (error) {
+                console.error("Error al guardar responsables en Supabase:", error);
+                showToastNotification("Error al guardar responsables en Supabase: " + error.message, "error");
+            }
+        } catch (err) {
+            console.error("Excepción al guardar responsables:", err);
+        }
+    }
+}
+
+async function deleteResponsableFromSupabase(id) {
+    state.responsables = state.responsables.filter(r => r.id !== id);
+    updateTeamUsersDatalist();
+
+    if (window.supabaseClient && window.SUPABASE_URL !== "YOUR_SUPABASE_URL") {
+        try {
+            const { error } = await window.supabaseClient
+                .from('responsables')
+                .delete()
+                .eq('id', id);
+
+            if (error) {
+                console.error("Error al eliminar responsable en Supabase:", error);
+                showToastNotification("Error al eliminar responsable en Supabase: " + error.message, "error");
+            } else {
+                showToastNotification("Responsable eliminado en Supabase.", "success");
+            }
+        } catch (err) {
+            console.error("Excepción al eliminar responsable:", err);
+        }
+    }
+}
+
+async function fetchSavingsRecordsFromSupabase() {
+    if (!window.supabaseClient || window.SUPABASE_URL === "YOUR_SUPABASE_URL") {
+        state.savingsRecords = JSON.parse(JSON.stringify(DEFAULT_SAVINGS_RECORDS));
+        return;
+    }
+
+    try {
+        const { data, error } = await window.supabaseClient
+            .from('savings_records')
+            .select('*')
+            .order('id', { ascending: false });
+
+        if (error) {
+            console.error("Error al consultar savings_records en Supabase:", error);
+            showToastNotification("Error al consultar savings_records en Supabase: " + error.message, "error");
+            state.savingsRecords = JSON.parse(JSON.stringify(DEFAULT_SAVINGS_RECORDS));
+        } else if (data && data.length > 0) {
+            state.savingsRecords = data;
+        } else {
+            console.log("Tabla 'savings_records' vacía en Supabase. Seeding...");
+            state.savingsRecords = JSON.parse(JSON.stringify(DEFAULT_SAVINGS_RECORDS));
+
+            const { data: inserted, error: insertErr } = await window.supabaseClient
+                .from('savings_records')
+                .insert(state.savingsRecords)
+                .select();
+
+            if (!insertErr && inserted && inserted.length > 0) {
+                state.savingsRecords = inserted;
+            }
+        }
+    } catch (err) {
+        console.error("Excepción al cargar registros de ahorro:", err);
+        state.savingsRecords = JSON.parse(JSON.stringify(DEFAULT_SAVINGS_RECORDS));
+    }
+}
+
+async function saveSavingsRecordToSupabase(item) {
+    const idx = state.savingsRecords.findIndex(s => s.id === item.id);
+    if (idx >= 0) {
+        state.savingsRecords[idx] = item;
+    } else {
+        state.savingsRecords.unshift(item);
+    }
+
+    if (window.supabaseClient && window.SUPABASE_URL !== "YOUR_SUPABASE_URL") {
+        try {
+            const { error } = await window.supabaseClient
+                .from('savings_records')
+                .upsert([item]);
+
+            if (error) {
+                console.error("Error al guardar registro de ahorro en Supabase:", error);
+                showToastNotification("Error al guardar registro de ahorro en Supabase: " + error.message, "error");
+            } else {
+                showToastNotification("Registro de ahorro guardado en Supabase.", "success");
+            }
+        } catch (err) {
+            console.error("Excepción al guardar registro de ahorro:", err);
+        }
+    }
+}
+
+async function deleteSavingsRecordFromSupabase(id) {
+    state.savingsRecords = state.savingsRecords.filter(s => s.id !== id);
+
+    if (window.supabaseClient && window.SUPABASE_URL !== "YOUR_SUPABASE_URL") {
+        try {
+            const { error } = await window.supabaseClient
+                .from('savings_records')
+                .delete()
+                .eq('id', id);
+
+            if (error) {
+                console.error("Error al eliminar registro de ahorro en Supabase:", error);
+                showToastNotification("Error al eliminar registro de ahorro en Supabase: " + error.message, "error");
+            } else {
+                showToastNotification("Registro de ahorro eliminado en Supabase.", "success");
+            }
+        } catch (err) {
+            console.error("Excepción al eliminar registro de ahorro:", err);
+        }
+    }
+}
+
+function loadResponsablesFromStorage() {
+    fetchResponsablesFromSupabase();
 }
 
 function saveResponsablesToStorage() {
-    updateTeamUsersDatalist();
+    saveResponsablesToSupabase();
 }
 
 function loadSavingsRecordsFromStorage() {
-    // Legacy helper - metrics are 100% computed from planActivities
+    fetchSavingsRecordsFromSupabase();
 }
 
-function saveSavingsRecordsToStorage() {
-    // Legacy helper
+function saveSavingsRecordsToStorage(item) {
+    if (item) saveSavingsRecordToSupabase(item);
+    else saveResponsablesToSupabase();
 }
 
 function updateTeamUsersDatalist() {
@@ -3751,10 +4003,14 @@ function exportPlanToExcel() {
 // 15. Document Event Bindings Setup
 async function inicializarAplicacion() {
     applyTheme();
-    loadResponsablesFromStorage();
-    loadSavingsRecordsFromStorage();
-    await fetchProjectsFromSupabase();
-    await fetchPlanActivitiesFromSupabase();
+
+    await Promise.all([
+        fetchProjectsFromSupabase(),
+        fetchPlanActivitiesFromSupabase(),
+        fetchResponsablesFromSupabase(),
+        fetchSavingsRecordsFromSupabase()
+    ]);
+
     setupSupabaseRealtime();
     setupSavingsEvents();
     updateTeamUsersDatalist();

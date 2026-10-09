@@ -39,6 +39,9 @@
                 <a href="#" class="nav-link" data-view="reports">
                     <i class="fa-solid fa-chart-pie"></i> <span>Reportes</span>
                 </a>
+                <a href="#" class="nav-link" data-view="plan-actividades">
+                    <i class="fa-solid fa-list-check"></i> <span>Plan de Actividades</span>
+                </a>
             </nav>
             
             <div class="sidebar-footer">
@@ -75,6 +78,9 @@
                         </div>
                     </div>
                     
+                    <button class="btn btn-secondary" id="btn-new-activity-top" title="Registrar Actividad en el Plan">
+                        <i class="fa-solid fa-calendar-plus"></i> + Actividad
+                    </button>
                     <button class="btn btn-primary" id="btn-new-project-top">
                         <i class="fa-solid fa-plus"></i> Nuevo Proyecto
                     </button>
@@ -546,6 +552,509 @@
                     </div>
                 </section>
 
+                <!-- 5. Plan de Actividades & Métricos View -->
+                <section id="view-plan-actividades" class="app-view">
+                    <!-- Header -->
+                    <div class="view-header">
+                        <div>
+                            <h2>📋 Plan de Actividades y Métricos de Ahorro</h2>
+                            <p class="view-subtitle" style="color: var(--text-muted); font-size: 14px; margin-top: 4px;">
+                                Gestión de actividades, tiempo invertido en minutos, evidencias y seguimiento al impacto económico (Hard, Soft, One Time, Inventory).
+                            </p>
+                        </div>
+                        <div class="action-row">
+                            <button class="btn btn-success" id="btn-export-plan-excel">
+                                <i class="fa-solid fa-file-excel"></i> Exportar a Excel
+                            </button>
+                            <button class="btn btn-primary" id="btn-new-activity-plan">
+                                <i class="fa-solid fa-plus"></i> Registrar Actividad
+                            </button>
+                        </div>
+                    </div>
+
+                    <!-- Subtabs Navigation Bar -->
+                    <div class="plan-toolbar margin-top-md">
+                        <div class="plan-subtabs">
+                            <button class="subtab-btn active" data-subtab="plan">
+                                <i class="fa-solid fa-list-check"></i> Plan de Actividades
+                            </button>
+                            <button class="subtab-btn" data-subtab="metricos">
+                                <i class="fa-solid fa-chart-pie"></i> 📊 Métricos de Ahorro
+                            </button>
+                            <button class="subtab-btn" data-subtab="dashboard">
+                                <i class="fa-solid fa-gauge-high"></i> Dashboard del Proyecto
+                            </button>
+                            <button class="subtab-btn" data-subtab="evidencias">
+                                <i class="fa-solid fa-folder-open"></i> Evidencias Adjuntas
+                            </button>
+                        </div>
+                    </div>
+
+                    <!-- SUBTAB 1: PLAN DE ACTIVIDADES (MAIN TABLE VIEW) -->
+                    <div id="subtab-plan-plan" class="subtab-content active margin-top-md">
+                        <!-- Filters Bar for Plan -->
+                        <div class="filter-panel-card">
+                            <div class="filter-panel-title">
+                                <i class="fa-solid fa-filter"></i> Filtros y Búsqueda del Plan
+                            </div>
+                            <div class="filters-grid">
+                                <div class="filter-group col-span-2">
+                                    <label for="plan-filter-search">Búsqueda por texto</label>
+                                    <input type="text" id="plan-filter-search" placeholder="Buscar por actividad, responsable, comentarios...">
+                                </div>
+                                <div class="filter-group">
+                                    <label for="plan-filter-user">Responsable</label>
+                                    <select id="plan-filter-user">
+                                        <option value="">Todos los responsables</option>
+                                    </select>
+                                </div>
+                                <div class="filter-group">
+                                    <label for="plan-filter-status">Status</label>
+                                    <select id="plan-filter-status">
+                                        <option value="">Todos los estatus</option>
+                                        <option value="Pendiente">Pendiente</option>
+                                        <option value="En Proceso">En Proceso</option>
+                                        <option value="En Riesgo">En Riesgo</option>
+                                        <option value="Bloqueado">Bloqueado</option>
+                                        <option value="Completado">Completado</option>
+                                    </select>
+                                </div>
+                                <div class="filter-group">
+                                    <label for="plan-filter-priority">Prioridad</label>
+                                    <select id="plan-filter-priority">
+                                        <option value="">Todas las prioridades</option>
+                                        <option value="Alta">Alta</option>
+                                        <option value="Media">Media</option>
+                                        <option value="Baja">Baja</option>
+                                    </select>
+                                </div>
+                                <div class="filter-group">
+                                    <label for="plan-filter-savings-type">Tipo de Ahorro</label>
+                                    <select id="plan-filter-savings-type">
+                                        <option value="">Todos</option>
+                                        <option value="Hard">Hard Savings</option>
+                                        <option value="Soft">Soft Savings</option>
+                                        <option value="One Time">One Time Savings</option>
+                                        <option value="Inventory">Inventory Reduction</option>
+                                    </select>
+                                </div>
+                            </div>
+                            <div class="filter-footer">
+                                <span class="results-count" id="plan-results-count" style="font-size: 13px; color: var(--text-muted);">Mostrando 0 actividades</span>
+                                <button class="btn btn-text text-danger" id="btn-clear-plan-filters">Limpiar Filtros</button>
+                            </div>
+                        </div>
+
+                        <!-- Main Plan Activities Table -->
+                        <div class="table-card margin-top-md">
+                            <div class="table-container">
+                                <table id="plan-actividades-table">
+                                    <thead>
+                                        <tr>
+                                            <th class="col-activity">Actividad</th>
+                                            <th class="col-resp">Responsable</th>
+                                            <th class="col-savings-type">Tipo Ahorro</th>
+                                            <th class="col-meta">Meta Esperada ($)</th>
+                                            <th class="col-real">Ahorro Real Validado ($)</th>
+                                            <th class="col-compliance">% Cumplimiento</th>
+                                            <th class="col-status">Status</th>
+                                            <th class="col-priority">Prioridad</th>
+                                            <th class="col-time">Tiempo (Min)</th>
+                                            <th class="col-evidences">Evidencias</th>
+                                            <th class="col-actions">Acciones</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody id="plan-actividades-table-body">
+                                        <!-- Dynamic rows loaded here -->
+                                    </tbody>
+                                </table>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- SUBTAB 2: MÉTRICOS DE AHORRO (FINANCIAL METRICS) -->
+                    <div id="subtab-plan-metricos" class="subtab-content margin-top-md" style="display: none;">
+                        
+                        <!-- Top Toolbar / Person Selector & Auto-Sync Status -->
+                        <div class="savings-toolbar-card" style="background: var(--bg-card); padding: 16px 20px; border-radius: 12px; border: 1px solid var(--border-color); display: flex; flex-wrap: wrap; justify-content: space-between; align-items: center; gap: 15px;">
+                            <div style="display: flex; align-items: center; gap: 12px;">
+                                <label for="savings-person-selector" style="font-weight: 600; font-size: 15px; color: var(--text-main); display: flex; align-items: center; gap: 8px;">
+                                    <i class="fa-solid fa-user-check text-blue" style="font-size: 18px;"></i> Ver métricos de:
+                                </label>
+                                <select id="savings-person-selector" style="padding: 8px 16px; border-radius: 8px; border: 1px solid var(--border-color); background: var(--bg-main); color: var(--text-main); font-weight: 600; font-size: 14px; cursor: pointer; min-width: 220px;">
+                                    <option value="all">Todos los responsables</option>
+                                    <!-- Options populated dynamically -->
+                                </select>
+                            </div>
+                            <div style="display: flex; gap: 10px; flex-wrap: wrap; align-items: center;">
+                                <span class="badge" style="background: var(--green-sem); color: var(--green-sem-text); font-size: 13px; padding: 8px 16px; font-weight: 700; border: 1px solid var(--green-sem-border);">
+                                    <i class="fa-solid fa-circle-check"></i> Calculado 100% desde Plan de Actividades
+                                </span>
+                            </div>
+                        </div>
+
+                        <!-- Selected Person Summary Banner -->
+                        <div id="savings-person-summary-banner" class="margin-top-md" style="background: linear-gradient(135deg, rgba(37, 99, 235, 0.12), rgba(16, 185, 129, 0.12)); padding: 20px 24px; border-radius: 12px; border: 1px solid var(--border-color); display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 15px;">
+                            <div>
+                                <div style="font-size: 12px; text-transform: uppercase; letter-spacing: 1px; color: var(--text-muted); font-weight: 700;">Responsable Seleccionado</div>
+                                <h2 id="savings-selected-person-name" style="font-size: 24px; font-weight: 800; color: var(--primary-light); margin-top: 2px;">TODOS</h2>
+                                <span id="savings-selected-person-area" style="font-size: 13px; color: var(--text-muted);">Área: Consolidado General del Plan</span>
+                            </div>
+                            <div style="display: flex; gap: 30px; text-align: center;">
+                                <div>
+                                    <div style="font-size: 12px; color: var(--text-muted); font-weight: 600;">Meta Esperada Total</div>
+                                    <div id="banner-meta-total" style="font-size: 22px; font-weight: 800; color: var(--text-main);">$0</div>
+                                </div>
+                                <div>
+                                    <div style="font-size: 12px; color: var(--text-muted); font-weight: 600;">Ahorro Real Total</div>
+                                    <div id="banner-actual-total" style="font-size: 22px; font-weight: 800; color: var(--green-sem-text);">$0</div>
+                                </div>
+                                <div>
+                                    <div style="font-size: 12px; color: var(--text-muted); font-weight: 600;">% Cumplimiento</div>
+                                    <div id="banner-compliance-pct" style="font-size: 22px; font-weight: 800; color: var(--purple-sem-text);">0%</div>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- Financial Summary Cards -->
+                        <div class="kpi-grid margin-top-md">
+                            <div class="kpi-card">
+                                <div class="kpi-header">
+                                    <span>Meta Esperada Total ($)</span>
+                                    <i class="fa-solid fa-bullseye text-blue"></i>
+                                </div>
+                                <div class="kpi-value text-blue" id="metric-kpi-target-total">$0</div>
+                                <div class="kpi-subtext">Suma de Metas Esperadas</div>
+                            </div>
+                            <div class="kpi-card">
+                                <div class="kpi-header">
+                                    <span>Ahorro Real Validado ($)</span>
+                                    <i class="fa-solid fa-sack-dollar text-green"></i>
+                                </div>
+                                <div class="kpi-value text-success" id="metric-kpi-actual-total">$0</div>
+                                <div class="kpi-subtext">Suma de Ahorros Validados</div>
+                            </div>
+                            <div class="kpi-card">
+                                <div class="kpi-header">
+                                    <span>% Cumplimiento General</span>
+                                    <i class="fa-solid fa-chart-line text-purple"></i>
+                                </div>
+                                <div class="kpi-value text-purple" id="metric-kpi-compliance-total">0%</div>
+                                <div class="kpi-subtext">(Ahorro Real / Meta Total) * 100</div>
+                            </div>
+                        </div>
+
+                        <!-- Savings Breakdown by Type (4 Types: Hard, Soft, One Time, Inventory) -->
+                        <div class="section-title margin-top-lg">
+                            <h3><i class="fa-solid fa-vault text-green"></i> Desglose Financiero por Tipo de Ahorro</h3>
+                        </div>
+                        <div class="savings-breakdown-grid margin-top-md">
+                            <!-- Card 1: HARD SAVINGS -->
+                            <div class="savings-card card-hard">
+                                <div class="savings-card-header">
+                                    <span class="savings-title"><i class="fa-solid fa-hand-holding-dollar text-green"></i> HARD SAVINGS</span>
+                                    <span class="savings-badge badge-hard">Cuantificable Directo</span>
+                                </div>
+                                <div class="savings-metrics-row">
+                                    <div class="s-metric">
+                                        <label>Meta Esperada</label>
+                                        <span id="hard-meta-val">$0</span>
+                                    </div>
+                                    <div class="s-metric">
+                                        <label>Ahorro Real</label>
+                                        <span id="hard-actual-val" class="text-success">$0</span>
+                                    </div>
+                                    <div class="s-metric">
+                                        <label>Cumplimiento</label>
+                                        <span id="hard-pct-val" class="text-purple">0%</span>
+                                    </div>
+                                </div>
+                                <div class="progress-bar-container margin-top-sm">
+                                    <div class="progress-bar-fill bg-success" id="hard-progress-bar" style="width: 0%;"></div>
+                                </div>
+                            </div>
+
+                            <!-- Card 2: SOFT SAVINGS -->
+                            <div class="savings-card card-soft">
+                                <div class="savings-card-header">
+                                    <span class="savings-title"><i class="fa-solid fa-stopwatch text-blue"></i> SOFT SAVINGS</span>
+                                    <span class="savings-badge badge-soft">Productividad / HH</span>
+                                </div>
+                                <div class="savings-metrics-row">
+                                    <div class="s-metric">
+                                        <label>Meta Esperada</label>
+                                        <span id="soft-meta-val">$0</span>
+                                    </div>
+                                    <div class="s-metric">
+                                        <label>Ahorro Real</label>
+                                        <span id="soft-actual-val" class="text-blue">$0</span>
+                                    </div>
+                                    <div class="s-metric">
+                                        <label>Cumplimiento</label>
+                                        <span id="soft-pct-val" class="text-purple">0%</span>
+                                    </div>
+                                </div>
+                                <div class="progress-bar-container margin-top-sm">
+                                    <div class="progress-bar-fill bg-primary" id="soft-progress-bar" style="width: 0%;"></div>
+                                </div>
+                            </div>
+
+                            <!-- Card 3: ONE TIME SAVINGS -->
+                            <div class="savings-card card-onetime">
+                                <div class="savings-card-header">
+                                    <span class="savings-title"><i class="fa-solid fa-coins text-warning"></i> ONE TIME SAVINGS</span>
+                                    <span class="savings-badge badge-onetime">Única Ocasión</span>
+                                </div>
+                                <div class="savings-metrics-row">
+                                    <div class="s-metric">
+                                        <label>Meta Esperada</label>
+                                        <span id="onetime-meta-val">$0</span>
+                                    </div>
+                                    <div class="s-metric">
+                                        <label>Ahorro Real</label>
+                                        <span id="onetime-actual-val" class="text-warning">$0</span>
+                                    </div>
+                                    <div class="s-metric">
+                                        <label>Cumplimiento</label>
+                                        <span id="onetime-pct-val" class="text-purple">0%</span>
+                                    </div>
+                                </div>
+                                <div class="progress-bar-container margin-top-sm">
+                                    <div class="progress-bar-fill bg-warning" id="onetime-progress-bar" style="width: 0%;"></div>
+                                </div>
+                            </div>
+
+                            <!-- Card 4: INVENTORY REDUCTION -->
+                            <div class="savings-card card-inventory">
+                                <div class="savings-card-header">
+                                    <span class="savings-title"><i class="fa-solid fa-boxes-stacked text-purple"></i> INVENTORY REDUCTION</span>
+                                    <span class="savings-badge badge-inventory">Reducción Capital WIP</span>
+                                </div>
+                                <div class="savings-metrics-row">
+                                    <div class="s-metric">
+                                        <label>Meta Esperada</label>
+                                        <span id="inventory-meta-val">$0</span>
+                                    </div>
+                                    <div class="s-metric">
+                                        <label>Ahorro Real</label>
+                                        <span id="inventory-actual-val" class="text-purple">$0</span>
+                                    </div>
+                                    <div class="s-metric">
+                                        <label>Cumplimiento</label>
+                                        <span id="inventory-pct-val" class="text-purple">0%</span>
+                                    </div>
+                                </div>
+                                <div class="progress-bar-container margin-top-sm">
+                                    <div class="progress-bar-fill bg-purple" id="inventory-progress-bar" style="width: 0%;"></div>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- Ranking de Responsables Section -->
+                        <div class="section-title margin-top-lg">
+                            <h3><i class="fa-solid fa-trophy text-yellow"></i> Ranking de Responsables (Mayor a Menor Ahorro)</h3>
+                        </div>
+                        <div class="ranking-grid" id="ranking-responsables-grid">
+                            <!-- Dynamic ranking cards loaded here -->
+                        </div>
+
+                        <!-- Tabla Resumen por Responsable -->
+                        <div class="smart-table-card margin-top-lg">
+                            <div class="card-table-header" style="display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 10px;">
+                                <span><i class="fa-solid fa-table-list text-blue"></i> Tabla Resumen por Responsable</span>
+                                <div style="display: flex; align-items: center; gap: 10px;">
+                                    <label for="sort-responsables-by" style="font-size: 13px; font-weight: 600; color: var(--text-muted);">Ordenar por:</label>
+                                    <select id="sort-responsables-by" style="padding: 6px 12px; border-radius: 6px; border: 1px solid var(--border-color); background: var(--bg-main); color: var(--text-main); font-size: 13px; font-weight: 600;">
+                                        <option value="savings_desc">Mayor ahorro real (Ranking)</option>
+                                        <option value="compliance_desc">Mayor % cumplimiento</option>
+                                        <option value="meta_desc">Mayor meta esperada</option>
+                                        <option value="name_asc">Nombre (A-Z)</option>
+                                    </select>
+                                </div>
+                            </div>
+                            <div class="table-scroll">
+                                <table class="table-mini" id="table-consolidated-savings">
+                                    <thead>
+                                        <tr>
+                                            <th>Posición</th>
+                                            <th>Responsable</th>
+                                            <th>Meta Esperada Total ($)</th>
+                                            <th>Ahorro Real Total ($)</th>
+                                            <th>% Cumplimiento</th>
+                                            <th>Hard (Real/Meta)</th>
+                                            <th>Soft (Real/Meta)</th>
+                                            <th>One Time (Real/Meta)</th>
+                                            <th>Inventory (Real/Meta)</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody id="table-consolidated-savings-body">
+                                        <!-- Dynamic rows loaded here -->
+                                    </tbody>
+                                </table>
+                            </div>
+                        </div>
+
+                        <!-- Detalle de Actividades en el Plan que Generan Ahorro -->
+                        <div class="smart-table-card margin-top-lg">
+                            <div class="card-table-header" style="display: flex; justify-content: space-between; align-items: center;">
+                                <span><i class="fa-solid fa-list-check text-green"></i> Detalle de Actividades Registradas en el Plan</span>
+                                <button class="btn btn-primary btn-sm" id="btn-go-to-plan-subtab" onclick="switchPlanSubtab('plan')">
+                                    <i class="fa-solid fa-plus"></i> + Gestionar en el Plan
+                                </button>
+                            </div>
+                            <div class="table-scroll">
+                                <table class="table-mini" id="table-real-savings">
+                                    <thead>
+                                        <tr>
+                                            <th>Actividad</th>
+                                            <th>Responsable</th>
+                                            <th>Tipo Ahorro</th>
+                                            <th>Meta Esperada ($)</th>
+                                            <th>Ahorro Real Validado ($)</th>
+                                            <th>% Cumplimiento</th>
+                                            <th>Status</th>
+                                            <th>Acciones</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody id="table-real-savings-body">
+                                        <!-- Dynamic rows loaded here -->
+                                    </tbody>
+                                </table>
+                            </div>
+                        </div>
+
+                        <!-- Savings Charts -->
+                        <div class="charts-section-grid margin-top-lg">
+                            <div class="chart-container-card">
+                                <h4>Comparativa Meta Esperada vs Ahorro Real por Tipo de Ahorro</h4>
+                                <div class="chart-wrapper"><canvas id="chart-plan-savings-compare"></canvas></div>
+                            </div>
+                            <div class="chart-container-card">
+                                <h4>Distribución Porcentual del Ahorro Real Validado</h4>
+                                <div class="chart-wrapper"><canvas id="chart-plan-savings-dist"></canvas></div>
+                            </div>
+                            <div class="chart-container-card full-width-chart">
+                                <h4>Ranking: Ahorro Real Validado vs Meta Esperada por Responsable ($)</h4>
+                                <div class="chart-wrapper"><canvas id="chart-plan-savings-trend"></canvas></div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- SUBTAB 3: DASHBOARD DEL PROYECTO -->
+                    <div id="subtab-plan-dashboard" class="subtab-content margin-top-md" style="display: none;">
+                        <!-- Project Dashboard KPI Grid -->
+                        <div class="kpi-grid">
+                            <div class="kpi-card">
+                                <div class="kpi-header">
+                                    <span>Total Actividades</span>
+                                    <i class="fa-solid fa-list text-blue"></i>
+                                </div>
+                                <div class="kpi-value" id="dash-plan-total-act">0</div>
+                                <div class="kpi-subtext">Plan completo</div>
+                            </div>
+                            <div class="kpi-card">
+                                <div class="kpi-header">
+                                    <span>Actividades Abiertas</span>
+                                    <i class="fa-solid fa-clock text-yellow"></i>
+                                </div>
+                                <div class="kpi-value text-warning" id="dash-plan-open-act">0</div>
+                                <div class="kpi-subtext">En proceso / pendientes</div>
+                            </div>
+                            <div class="kpi-card">
+                                <div class="kpi-header">
+                                    <span>Actividades Cerradas</span>
+                                    <i class="fa-solid fa-circle-check text-green"></i>
+                                </div>
+                                <div class="kpi-value text-success" id="dash-plan-closed-act">0</div>
+                                <div class="kpi-subtext">Completadas con éxito</div>
+                            </div>
+                            <div class="kpi-card">
+                                <div class="kpi-header">
+                                    <span>Tiempo Total Invertido</span>
+                                    <i class="fa-solid fa-stopwatch text-purple"></i>
+                                </div>
+                                <div class="kpi-value text-purple" id="dash-plan-total-minutes">0 min</div>
+                                <div class="kpi-subtext" id="dash-plan-total-hours">0.0 horas</div>
+                            </div>
+                            <div class="kpi-card">
+                                <div class="kpi-header">
+                                    <span>Meta de Ahorro</span>
+                                    <i class="fa-solid fa-bullseye text-blue"></i>
+                                </div>
+                                <div class="kpi-value text-blue" id="dash-plan-target-savings">$0</div>
+                                <div class="kpi-subtext">Meta financiera</div>
+                            </div>
+                            <div class="kpi-card">
+                                <div class="kpi-header">
+                                    <span>Ahorro Acumulado</span>
+                                    <i class="fa-solid fa-sack-dollar text-green"></i>
+                                </div>
+                                <div class="kpi-value text-success" id="dash-plan-actual-savings">$0</div>
+                                <div class="kpi-subtext">Validado por finanzas</div>
+                            </div>
+                            <div class="kpi-card">
+                                <div class="kpi-header">
+                                    <span>% Cumplimiento</span>
+                                    <i class="fa-solid fa-percent text-purple"></i>
+                                </div>
+                                <div class="kpi-value text-purple" id="dash-plan-savings-pct">0%</div>
+                                <div class="kpi-subtext">Logro económico</div>
+                            </div>
+                            <div class="kpi-card">
+                                <div class="kpi-header">
+                                    <span>Evidencias Cargadas</span>
+                                    <i class="fa-solid fa-folder-open text-orange"></i>
+                                </div>
+                                <div class="kpi-value text-orange" id="dash-plan-total-evidences">0</div>
+                                <div class="kpi-subtext">Archivos de respaldo</div>
+                            </div>
+                        </div>
+
+                        <!-- Project Charts -->
+                        <div class="charts-section-grid margin-top-lg">
+                            <div class="chart-container-card">
+                                <h4>Actividades por Status</h4>
+                                <div class="chart-wrapper"><canvas id="chart-plan-status"></canvas></div>
+                            </div>
+                            <div class="chart-container-card">
+                                <h4>Actividades por Prioridad</h4>
+                                <div class="chart-wrapper"><canvas id="chart-plan-priority"></canvas></div>
+                            </div>
+                            <div class="chart-container-card full-width-chart">
+                                <h4>Tiempo Invertido por Responsable (MINUTOS)</h4>
+                                <div class="chart-wrapper"><canvas id="chart-plan-user-minutes"></canvas></div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- SUBTAB 4: EVIDENCIAS ADJUNTAS -->
+                    <div id="subtab-plan-evidencias" class="subtab-content margin-top-md" style="display: none;">
+                        <div class="section-title">
+                            <h3><i class="fa-solid fa-folder-open text-blue"></i> Repositorio de Evidencias del Proyecto</h3>
+                            <p style="font-size: 13px; color: var(--text-muted); margin-top: 4px;">Archivos PDF, Excel, Word, PowerPoint, Imágenes y Videos asociados a las actividades del plan.</p>
+                        </div>
+                        <div class="table-card margin-top-md">
+                            <div class="table-container">
+                                <table id="plan-evidencias-table">
+                                    <thead>
+                                        <tr>
+                                            <th>Tipo / Icono</th>
+                                            <th>Nombre del Archivo</th>
+                                            <th>Actividad Asociada</th>
+                                            <th>Fecha de Carga</th>
+                                            <th>Usuario</th>
+                                            <th>Acciones</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody id="plan-evidencias-table-body">
+                                        <!-- Dynamic rows loaded here -->
+                                    </tbody>
+                                </table>
+                            </div>
+                        </div>
+                    </div>
+                </section>
+
             </div>
         </main>
     </div>
@@ -644,6 +1153,384 @@
                         <button type="submit" class="btn btn-primary">Guardar Proyecto</button>
                     </div>
                 </form>
+            </div>
+        </div>
+    </div>
+
+    <!-- Activity Form Modal (Plan de Actividades New/Edit) -->
+    <div class="modal" id="activity-modal">
+        <div class="modal-content modal-lg">
+            <div class="modal-header">
+                <h3 id="modal-activity-title">Registrar Actividad en el Plan</h3>
+                <button class="modal-close-btn" id="btn-close-activity-modal">&times;</button>
+            </div>
+            <div class="modal-body">
+                <form id="activity-form">
+                    <input type="hidden" id="form-act-id">
+                    
+                    <div class="form-section-title">Información de la Actividad</div>
+                    
+                    <div class="form-group">
+                        <label for="form-act-title">Nombre de la Actividad *</label>
+                        <textarea id="form-act-title" rows="2" required placeholder="Ej. Implementación de Poka Yoke en sensor de posición de prensa 800T..."></textarea>
+                    </div>
+
+                    <div class="form-grid-3 margin-top-sm">
+                        <div class="form-group">
+                            <label for="form-act-user">Responsable *</label>
+                            <input type="text" id="form-act-user" required list="team-users-list" placeholder="Nombre del responsable">
+                            <datalist id="team-users-list">
+                                <option value="Montserrat De">
+                                <option value="Carlos Gómez">
+                                <option value="Laura Martínez">
+                                <option value="Roberto Méndez">
+                                <option value="Patricia Rojas">
+                                <option value="Sofía Medina">
+                                <option value="Jorge Ruiz">
+                            </datalist>
+                        </div>
+                        <div class="form-group">
+                            <label for="form-act-target-date">Fecha Compromiso *</label>
+                            <input type="date" id="form-act-target-date" required>
+                        </div>
+                        <div class="form-group">
+                            <label for="form-act-close-date">Fecha Cierre</label>
+                            <input type="date" id="form-act-close-date">
+                        </div>
+                    </div>
+
+                    <div class="form-grid-4 margin-top-sm">
+                        <div class="form-group">
+                            <label for="form-act-status">Status *</label>
+                            <select id="form-act-status" required>
+                                <option value="Pendiente">Pendiente</option>
+                                <option value="En Proceso">En Proceso</option>
+                                <option value="En Riesgo">En Riesgo</option>
+                                <option value="Bloqueado">Bloqueado</option>
+                                <option value="Completado">Completado</option>
+                            </select>
+                        </div>
+                        <div class="form-group">
+                            <label for="form-act-priority">Prioridad *</label>
+                            <select id="form-act-priority" required>
+                                <option value="Alta">Alta</option>
+                                <option value="Media">Media</option>
+                                <option value="Baja">Baja</option>
+                            </select>
+                        </div>
+                        <div class="form-group">
+                            <label for="form-act-minutes">Tiempo Invertido (MINUTOS) *</label>
+                            <input type="number" id="form-act-minutes" min="1" max="10000" step="15" value="60" required placeholder="Ej. 120 (minutos)">
+                        </div>
+                        <div class="form-group">
+                            <label for="form-act-progress">% Avance (0 - 100%) *</label>
+                            <input type="number" id="form-act-progress" min="0" max="100" value="0" required>
+                        </div>
+                    </div>
+
+                    <div class="form-group margin-top-sm">
+                        <label for="form-act-comments">Comentarios</label>
+                        <textarea id="form-act-comments" rows="2" placeholder="Notas, hallazgos o justificación del avance..."></textarea>
+                    </div>
+
+                    <div class="form-group margin-top-sm">
+                        <label for="form-act-next-action">Próxima Acción</label>
+                        <textarea id="form-act-next-action" rows="2" placeholder="Siguiente paso o entregable pendiente..."></textarea>
+                    </div>
+
+                    <div class="form-section-title margin-top-md" style="display: flex; justify-content: space-between; align-items: center;">
+                        <span><i class="fa-solid fa-sack-dollar text-green"></i> Relación Actividad - Impacto Económico / Métricos de Ahorro</span>
+                    </div>
+
+                    <div class="card margin-top-sm" style="background: rgba(255, 255, 255, 0.03); border: 1px solid var(--border-color); border-radius: 8px; padding: 16px;">
+                        <div class="form-group mb-0" style="display: flex; align-items: center; gap: 10px; margin-bottom: 0;">
+                            <input type="checkbox" id="form-act-has-savings-check" style="width: 18px; height: 18px; cursor: pointer;">
+                            <label for="form-act-has-savings-check" style="font-weight: 600; cursor: pointer; font-size: 14px; margin-bottom: 0; user-select: none;">
+                                <i class="fa-solid fa-coins text-yellow"></i> Esta actividad genera ahorro
+                            </label>
+                        </div>
+
+                        <!-- Savings Container (shown only if checkbox is checked) -->
+                        <div id="form-act-savings-container" class="margin-top-md" style="display: none;">
+                            <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 12px; flex-wrap: wrap; gap: 8px;">
+                                <span style="font-size: 13px; font-weight: 600; color: var(--text-muted);">
+                                    <i class="fa-solid fa-list-check text-blue"></i> Líneas de Ahorro Registradas
+                                </span>
+                                <button type="button" class="btn btn-secondary btn-sm" id="btn-add-savings-line" style="gap: 6px;">
+                                    <i class="fa-solid fa-plus text-green"></i> Agregar Línea de Ahorro
+                                </button>
+                            </div>
+
+                            <div id="form-act-savings-lines-list" style="display: flex; flex-direction: column; gap: 12px;">
+                                <!-- Dynamic saving lines rows -->
+                            </div>
+
+                            <!-- Activity Savings Summary Totals -->
+                            <div class="margin-top-md p-3" style="background: rgba(16, 185, 129, 0.08); border-radius: 8px; border: 1px solid rgba(16, 185, 129, 0.2); display: flex; justify-content: space-around; text-align: center; flex-wrap: wrap; gap: 12px;">
+                                <div>
+                                    <span style="font-size: 11px; color: var(--text-muted); display: block;">TOTAL META ESPERADA ($)</span>
+                                    <strong id="modal-savings-total-target" style="font-size: 16px; color: var(--primary);">$0.00</strong>
+                                </div>
+                                <div style="border-left: 1px solid var(--border-color);"></div>
+                                <div>
+                                    <span style="font-size: 11px; color: var(--text-muted); display: block;">TOTAL AHORRO REAL VALIDADO ($)</span>
+                                    <strong id="modal-savings-total-actual" style="font-size: 16px; color: var(--green);">$0.00</strong>
+                                </div>
+                                <div style="border-left: 1px solid var(--border-color);"></div>
+                                <div>
+                                    <span style="font-size: 11px; color: var(--text-muted); display: block;">% CUMPLIMIENTO ACTIVIDAD</span>
+                                    <strong id="modal-savings-total-compliance" style="font-size: 16px; color: var(--yellow);">0.0%</strong>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="form-section-title margin-top-md"><i class="fa-solid fa-paperclip text-blue"></i> Carga de Evidencias (PDF, Excel, Word, PowerPoint, Imágenes, Videos)</div>
+                    <div class="form-group">
+                        <label for="form-act-attachments">Adjuntar Evidencias</label>
+                        <input type="file" id="form-act-attachments" multiple accept=".pdf,.xlsx,.xls,.docx,.doc,.pptx,.ppt,image/*,video/*">
+                        <div class="attachment-previews margin-top-sm" id="form-act-attachment-previews" style="display: flex; flex-wrap: wrap; gap: 8px;"></div>
+                    </div>
+
+                    <div class="modal-footer margin-top-lg">
+                        <button type="button" class="btn btn-secondary" id="btn-cancel-activity-modal">Cancelar</button>
+                        <button type="submit" class="btn btn-primary">Guardar Actividad</button>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+
+    <!-- Evidence Preview Modal -->
+    <div class="modal" id="evidence-preview-modal">
+        <div class="modal-content modal-md">
+            <div class="modal-header">
+                <h3 id="evidence-preview-title">Visualizador de Evidencia</h3>
+                <button class="modal-close-btn" id="btn-close-evidence-modal">&times;</button>
+            </div>
+            <div class="modal-body text-center" id="evidence-preview-body" style="padding: 20px;">
+                <!-- Image or file info loaded here -->
+            </div>
+        </div>
+    </div>
+
+    <!-- Modal: Editar Meta de Ahorro -->
+    <div class="modal" id="modal-edit-meta">
+        <div class="modal-content modal-md">
+            <div class="modal-header">
+                <h3 id="modal-edit-meta-title">✏ Editar Meta de Ahorro</h3>
+                <button class="modal-close-btn" id="btn-close-edit-meta-modal">&times;</button>
+            </div>
+            <div class="modal-body">
+                <form id="form-edit-meta">
+                    <input type="hidden" id="edit-meta-resp-id">
+                    
+                    <div class="form-group">
+                        <label for="edit-meta-resp-name">Responsable *</label>
+                        <input type="text" id="edit-meta-resp-name" required placeholder="Nombre del responsable">
+                    </div>
+                    <div class="form-group margin-top-sm">
+                        <label for="edit-meta-resp-area">Área *</label>
+                        <input type="text" id="edit-meta-resp-area" required placeholder="Ej. Producción, Calidad, Logística">
+                    </div>
+
+                    <div class="form-section-title margin-top-md">Metas por Tipo de Ahorro ($)</div>
+                    <div class="form-grid-2 margin-top-sm">
+                        <div class="form-group">
+                            <label for="edit-meta-hard"><i class="fa-solid fa-hand-holding-dollar text-green"></i> Hard Savings Meta</label>
+                            <input type="number" id="edit-meta-hard" min="0" step="500" value="0">
+                        </div>
+                        <div class="form-group">
+                            <label for="edit-meta-soft"><i class="fa-solid fa-stopwatch text-blue"></i> Soft Savings Meta</label>
+                            <input type="number" id="edit-meta-soft" min="0" step="500" value="0">
+                        </div>
+                        <div class="form-group">
+                            <label for="edit-meta-onetime"><i class="fa-solid fa-coins text-warning"></i> One Time Savings Meta</label>
+                            <input type="number" id="edit-meta-onetime" min="0" step="500" value="0">
+                        </div>
+                        <div class="form-group">
+                            <label for="edit-meta-inventory"><i class="fa-solid fa-boxes-stacked text-purple"></i> Inventory Savings Meta</label>
+                            <input type="number" id="edit-meta-inventory" min="0" step="500" value="0">
+                        </div>
+                    </div>
+
+                    <div class="form-group margin-top-md" style="background: var(--bg-main); padding: 12px; border-radius: 8px; border: 1px solid var(--border-color);">
+                        <label for="edit-meta-total" style="font-weight: 700; color: var(--primary-light);">Meta Total Calculada ($) <span style="font-size: 12px; font-weight: 400; color: var(--text-muted);">(Calculada Automáticamente = Hard + Soft + One Time + Inventory)</span></label>
+                        <input type="number" id="edit-meta-total" min="0" step="500" value="0" readonly style="font-size: 16px; font-weight: 700; background-color: var(--bg-card); cursor: not-allowed;">
+                    </div>
+
+                    <div class="modal-footer margin-top-lg">
+                        <button type="button" class="btn btn-secondary" id="btn-cancel-edit-meta-modal">Cancelar</button>
+                        <button type="submit" class="btn btn-primary">Guardar Metas</button>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+
+    <!-- Modal: Catálogo de Responsables -->
+    <div class="modal" id="modal-responsables-catalog">
+        <div class="modal-content modal-lg">
+            <div class="modal-header">
+                <h3>⚙ Catálogo de Responsables</h3>
+                <button class="modal-close-btn" id="btn-close-catalog-modal">&times;</button>
+            </div>
+            <div class="modal-body">
+                <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 15px;">
+                    <p style="font-size: 13px; color: var(--text-muted);">Administre la lista de responsables y sus metas individuales.</p>
+                    <button class="btn btn-primary btn-sm" id="btn-add-new-responsable-catalog">
+                        <i class="fa-solid fa-user-plus"></i> + Nuevo Responsable
+                    </button>
+                </div>
+                <div class="table-scroll">
+                    <table class="table-mini" id="table-catalog-responsables">
+                        <thead>
+                            <tr>
+                                <th>Nombre</th>
+                                <th>Área</th>
+                                <th>Meta Hard</th>
+                                <th>Meta Soft</th>
+                                <th>Meta One Time</th>
+                                <th>Meta Inventory</th>
+                                <th>Meta Total</th>
+                                <th>Acciones</th>
+                            </tr>
+                        </thead>
+                        <tbody id="catalog-responsables-body">
+                            <!-- Dynamic rows loaded here -->
+                        </tbody>
+                    </table>
+                </div>
+                <div class="modal-footer margin-top-lg">
+                    <button type="button" class="btn btn-secondary" id="btn-close-catalog-modal-footer">Cerrar</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Modal: Registrar Ahorro Real -->
+    <div class="modal" id="modal-real-saving">
+        <div class="modal-content modal-md">
+            <div class="modal-header">
+                <h3 id="modal-real-saving-title">💵 Registrar Ahorro Real</h3>
+                <button class="modal-close-btn" id="btn-close-real-saving-modal">&times;</button>
+            </div>
+            <div class="modal-body">
+                <form id="form-real-saving">
+                    <input type="hidden" id="form-saving-id">
+                    
+                    <div class="form-grid-2">
+                        <div class="form-group">
+                            <label for="form-saving-resp">Responsable *</label>
+                            <select id="form-saving-resp" required>
+                                <!-- Dynamic options loaded here -->
+                            </select>
+                        </div>
+                        <div class="form-group">
+                            <label for="form-saving-type">Tipo de Ahorro *</label>
+                            <select id="form-saving-type" required>
+                                <option value="Hard">Hard Savings (Duro)</option>
+                                <option value="Soft">Soft Savings (Blando)</option>
+                                <option value="One Time">One Time Savings (Única Ocasión)</option>
+                                <option value="Inventory">Inventory Savings (Inventario)</option>
+                            </select>
+                        </div>
+                    </div>
+
+                    <div class="form-group margin-top-sm">
+                        <label for="form-saving-description">Descripción del Ahorro *</label>
+                        <input type="text" id="form-saving-description" required placeholder="Ej. Reducción de desperdicio de materia prima en estación 2">
+                    </div>
+
+                    <div class="form-grid-2 margin-top-sm">
+                        <div class="form-group">
+                            <label for="form-saving-amount">Monto ($ USD) *</label>
+                            <input type="number" id="form-saving-amount" min="0" step="100" required placeholder="Ej. 15000">
+                        </div>
+                        <div class="form-group">
+                            <label for="form-saving-date">Fecha *</label>
+                            <input type="date" id="form-saving-date" required>
+                        </div>
+                    </div>
+
+                    <div class="form-group margin-top-sm">
+                        <label for="form-saving-evidence">Evidencia (Nombre de Archivo / Link) *</label>
+                        <input type="text" id="form-saving-evidence" required placeholder="Ej. Validacion_Finanzas_Q3.pdf">
+                    </div>
+
+                    <div class="form-group margin-top-sm">
+                        <label for="form-saving-comments">Comentarios / Observaciones</label>
+                        <textarea id="form-saving-comments" rows="3" placeholder="Notas sobre la validación del ahorro..."></textarea>
+                    </div>
+
+                    <div class="modal-footer margin-top-lg">
+                        <button type="button" class="btn btn-secondary" id="btn-cancel-real-saving-modal">Cancelar</button>
+                        <button type="submit" class="btn btn-primary">Guardar Ahorro Real</button>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+
+    <!-- Modal: Reporte de Auditoría de Métricos -->
+    <div class="modal" id="modal-audit-report">
+        <div class="modal-content modal-lg">
+            <div class="modal-header" style="background: linear-gradient(135deg, rgba(37, 99, 235, 0.1), rgba(16, 185, 129, 0.1));">
+                <h3>🔍 Auditoría y Recálculo de Métricos de Ahorro</h3>
+                <button class="modal-close-btn" id="btn-close-audit-report-modal">&times;</button>
+            </div>
+            <div class="modal-body">
+                <!-- Summary Banner -->
+                <div style="display: flex; justify-content: space-around; background: var(--bg-main); padding: 15px; border-radius: 10px; border: 1px solid var(--border-color); margin-bottom: 20px; text-align: center; flex-wrap: wrap; gap: 15px;">
+                    <div>
+                        <div style="font-size: 12px; color: var(--text-muted); font-weight: 600;">Meta Calculada</div>
+                        <div id="audit-report-meta-total" style="font-size: 20px; font-weight: 800; color: var(--primary-light);">$0</div>
+                    </div>
+                    <div>
+                        <div style="font-size: 12px; color: var(--text-muted); font-weight: 600;">Ahorro Calculado</div>
+                        <div id="audit-report-actual-total" style="font-size: 20px; font-weight: 800; color: var(--green-sem-text);">$0</div>
+                    </div>
+                    <div>
+                        <div style="font-size: 12px; color: var(--text-muted); font-weight: 600;">% Cumplimiento</div>
+                        <div id="audit-report-compliance-pct" style="font-size: 20px; font-weight: 800; color: var(--purple-sem-text);">0%</div>
+                    </div>
+                </div>
+
+                <!-- Differences Section -->
+                <div class="section-title margin-top-md">
+                    <h3><i class="fa-solid fa-list-check text-warning"></i> Observaciones y Diferencias Encontradas</h3>
+                </div>
+                <div id="audit-report-differences-container" style="background: var(--bg-main); padding: 12px 16px; border-radius: 8px; border: 1px solid var(--border-color); max-height: 160px; overflow-y: auto; font-size: 13px; margin-top: 8px;">
+                    <ul id="audit-report-differences-list" style="margin-left: 18px; line-height: 1.5; color: var(--text-main);">
+                        <!-- Dynamic list -->
+                    </ul>
+                </div>
+
+                <!-- Responsables Afectados Table -->
+                <div class="section-title margin-top-lg">
+                    <h3><i class="fa-solid fa-users text-blue"></i> Responsables y Desglose Auditoría</h3>
+                </div>
+                <div class="table-scroll" style="max-height: 250px; overflow-y: auto; margin-top: 8px;">
+                    <table class="table-mini" id="table-audit-report-responsables">
+                        <thead>
+                            <tr>
+                                <th>Responsable</th>
+                                <th>Área</th>
+                                <th>Meta Calculada</th>
+                                <th>Ahorro Calculado</th>
+                                <th>% Cumplimiento</th>
+                                <th>Estado Auditoría</th>
+                            </tr>
+                        </thead>
+                        <tbody id="audit-report-responsables-body">
+                            <!-- Dynamic rows -->
+                        </tbody>
+                    </table>
+                </div>
+
+                <div class="modal-footer margin-top-lg">
+                    <button type="button" class="btn btn-primary" id="btn-close-audit-report-footer">Aceptar y Cerrar</button>
+                </div>
             </div>
         </div>
     </div>

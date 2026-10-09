@@ -1316,4 +1316,794 @@ html, body {
     width: 100% !important;
 }
 
+/* ==========================================================================
+   BITÁCORA DE ACTIVIDADES DESIGN SYSTEM & STYLING
+   ========================================================================== */
+
+/* 1. Alert Banner Card */
+.alert-banner-card {
+    background: linear-gradient(135deg, rgba(239, 68, 68, 0.15), rgba(245, 158, 11, 0.15));
+    border: 1px solid rgba(239, 68, 68, 0.4);
+    border-radius: 12px;
+    padding: 16px 20px;
+    display: flex;
+    align-items: center;
+    gap: 16px;
+    color: var(--text-main);
+    box-shadow: 0 4px 12px rgba(239, 68, 68, 0.1);
+    animation: pulseAlert 2s infinite alternate;
+}
+
+@keyframes pulseAlert {
+    0% { border-color: rgba(239, 68, 68, 0.4); }
+    100% { border-color: rgba(239, 68, 68, 0.8); }
+}
+
+.alert-banner-icon {
+    font-size: 26px;
+    color: #ef4444;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    width: 48px;
+    height: 48px;
+    background: rgba(239, 68, 68, 0.2);
+    border-radius: 50%;
+    flex-shrink: 0;
+}
+
+.alert-banner-content {
+    flex-grow: 1;
+}
+
+.alert-banner-content h4 {
+    font-size: 15px;
+    font-weight: 700;
+    color: #f87171;
+    margin-bottom: 4px;
+}
+
+.alert-banner-content p {
+    font-size: 13px;
+    color: var(--text-muted);
+}
+
+/* 2. Subtabs Navigation Bar */
+.bitacora-toolbar {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    border-bottom: 2px solid var(--border-color);
+    padding-bottom: 4px;
+}
+
+.bitacora-subtabs {
+    display: flex;
+    gap: 8px;
+    overflow-x: auto;
+}
+
+.subtab-btn {
+    background: transparent;
+    border: none;
+    padding: 10px 18px;
+    font-family: inherit;
+    font-size: 14px;
+    font-weight: 600;
+    color: var(--text-muted);
+    cursor: pointer;
+    border-radius: 8px 8px 0 0;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    transition: all 0.2s ease;
+    border-bottom: 3px solid transparent;
+}
+
+.subtab-btn:hover {
+    color: var(--primary-light);
+    background: rgba(37, 99, 235, 0.05);
+}
+
+.subtab-btn.active {
+    color: var(--primary-light);
+    border-bottom-color: var(--primary-light);
+    background: rgba(37, 99, 235, 0.1);
+}
+
+/* 3. Bitácora Feed Timeline Layout */
+.feed-timeline {
+    display: flex;
+    flex-direction: column;
+    gap: 20px;
+    max-width: 950px;
+    margin: 0 auto;
+}
+
+.feed-card {
+    background-color: var(--bg-card);
+    border: 1px solid var(--border-color);
+    border-radius: 14px;
+    padding: 20px;
+    box-shadow: 0 4px 20px rgba(0, 0, 0, 0.08);
+    transition: transform 0.2s ease, box-shadow 0.2s ease, border-color 0.2s ease;
+    position: relative;
+    overflow: hidden;
+}
+
+.feed-card:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 8px 25px rgba(0, 0, 0, 0.15);
+    border-color: rgba(37, 99, 235, 0.3);
+}
+
+/* Left Accent Line according to Status */
+.feed-card::before {
+    content: '';
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 5px;
+    height: 100%;
+}
+
+.feed-card.status-completado::before { background-color: #10B981; }
+.feed-card.status-en-proceso::before { background-color: #3B82F6; }
+.feed-card.status-bloqueado::before { background-color: #EF4444; }
+
+/* Feed Card Header */
+.feed-card-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 14px;
+    flex-wrap: wrap;
+    gap: 10px;
+}
+
+.feed-user-info {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+}
+
+.user-avatar {
+    width: 44px;
+    height: 44px;
+    border-radius: 50%;
+    background: linear-gradient(135deg, #2563EB, #7C3AED);
+    color: #ffffff;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-weight: 700;
+    font-size: 16px;
+    box-shadow: 0 2px 8px rgba(37, 99, 235, 0.3);
+    flex-shrink: 0;
+}
+
+.user-details {
+    display: flex;
+    flex-direction: column;
+}
+
+.user-name {
+    font-weight: 700;
+    font-size: 16px;
+    color: var(--text-main);
+}
+
+.activity-timestamp {
+    font-size: 12px;
+    color: var(--text-muted);
+    display: flex;
+    align-items: center;
+    gap: 5px;
+}
+
+.feed-card-meta {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    flex-wrap: wrap;
+}
+
+/* Category & Priority Badges */
+.badge-category {
+    padding: 4px 10px;
+    border-radius: 20px;
+    font-size: 11px;
+    font-weight: 600;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+    background: rgba(59, 130, 246, 0.12);
+    color: #3b82f6;
+    border: 1px solid rgba(59, 130, 246, 0.3);
+}
+
+.badge-category.cat-kaizen { background: rgba(16, 185, 129, 0.12); color: #10b981; border-color: rgba(16, 185, 129, 0.3); }
+.badge-category.cat-six-sigma { background: rgba(168, 85, 247, 0.12); color: #a855f7; border-color: rgba(168, 85, 247, 0.3); }
+.badge-category.cat-junta { background: rgba(245, 158, 11, 0.12); color: #f59e0b; border-color: rgba(245, 158, 11, 0.3); }
+.badge-category.cat-auditoría { background: rgba(239, 68, 68, 0.12); color: #ef4444; border-color: rgba(239, 68, 68, 0.3); }
+.badge-category.cat-soporte { background: rgba(14, 165, 233, 0.12); color: #0ea5e9; border-color: rgba(14, 165, 233, 0.3); }
+.badge-category.cat-capacitación { background: rgba(236, 72, 153, 0.12); color: #ec4899; border-color: rgba(236, 72, 153, 0.3); }
+
+.badge-priority {
+    padding: 3px 8px;
+    border-radius: 6px;
+    font-size: 11px;
+    font-weight: 600;
+}
+
+.priority-alta { background: rgba(239, 68, 68, 0.15); color: #ef4444; }
+.priority-media { background: rgba(245, 158, 11, 0.15); color: #f59e0b; }
+.priority-baja { background: rgba(16, 185, 129, 0.15); color: #10b981; }
+
+/* Status Pill */
+.badge-status-pill {
+    padding: 5px 12px;
+    border-radius: 30px;
+    font-size: 12px;
+    font-weight: 700;
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+}
+
+.badge-status-pill.completado {
+    background-color: var(--green-sem);
+    color: var(--green-sem-text);
+    border: 1px solid var(--green-sem-border);
+}
+
+.badge-status-pill.en-proceso {
+    background-color: var(--blue-sem);
+    color: var(--blue-sem-text);
+    border: 1px solid var(--blue-sem-border);
+}
+
+.badge-status-pill.bloqueado {
+    background-color: var(--red-sem);
+    color: var(--red-sem-text);
+    border: 1px solid var(--red-sem-border);
+}
+
+/* Activity Body & Content */
+.feed-card-body {
+    margin: 12px 0;
+}
+
+.feed-activity-title {
+    font-size: 16px;
+    font-weight: 700;
+    color: var(--text-main);
+    line-height: 1.4;
+    margin-bottom: 8px;
+}
+
+.feed-hours-tag {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    font-size: 12px;
+    font-weight: 600;
+    color: var(--text-muted);
+    background: rgba(255, 255, 255, 0.05);
+    padding: 3px 10px;
+    border-radius: 20px;
+    border: 1px solid var(--border-color);
+    margin-bottom: 12px;
+}
+
+/* Feed Comments Box */
+.feed-comments-box {
+    background: rgba(0, 0, 0, 0.12);
+    border-left: 3px solid var(--primary-light);
+    border-radius: 6px;
+    padding: 10px 14px;
+    margin-bottom: 10px;
+    font-size: 14px;
+    color: var(--text-main);
+    line-height: 1.5;
+}
+
+body:not(.dark-theme) .feed-comments-box {
+    background: #f1f5f9;
+}
+
+.feed-comments-box label {
+    font-size: 11px;
+    font-weight: 700;
+    text-transform: uppercase;
+    color: var(--text-muted);
+    display: block;
+    margin-bottom: 2px;
+}
+
+/* Next Action Box */
+.feed-next-action-box {
+    background: rgba(245, 158, 11, 0.08);
+    border: 1px dashed rgba(245, 158, 11, 0.4);
+    border-radius: 8px;
+    padding: 10px 14px;
+    font-size: 13px;
+    color: var(--text-main);
+    display: flex;
+    align-items: flex-start;
+    gap: 10px;
+}
+
+.feed-next-action-box i {
+    color: #f59e0b;
+    margin-top: 3px;
+    font-size: 14px;
+}
+
+/* Attachments Grid / List */
+.feed-attachments-area {
+    margin-top: 14px;
+    padding-top: 12px;
+    border-top: 1px solid var(--border-color);
+}
+
+.attachments-label {
+    font-size: 12px;
+    font-weight: 700;
+    color: var(--text-muted);
+    margin-bottom: 8px;
+    display: flex;
+    align-items: center;
+    gap: 6px;
+}
+
+.attachments-grid {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 10px;
+}
+
+.attachment-chip {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    padding: 8px 12px;
+    background: var(--bg-main);
+    border: 1px solid var(--border-color);
+    border-radius: 8px;
+    font-size: 13px;
+    color: var(--text-main);
+    cursor: pointer;
+    transition: all 0.2s ease;
+    max-width: 260px;
+}
+
+.attachment-chip:hover {
+    border-color: var(--primary-light);
+    transform: translateY(-1px);
+    background: rgba(37, 99, 235, 0.08);
+}
+
+.attachment-chip i {
+    font-size: 18px;
+}
+
+.attachment-chip .fa-file-pdf { color: #ef4444; }
+.attachment-chip .fa-file-excel { color: #10b981; }
+.attachment-chip .fa-file-word { color: #3b82f6; }
+.attachment-chip .fa-file-image { color: #a855f7; }
+
+.attachment-thumb {
+    width: 36px;
+    height: 36px;
+    border-radius: 4px;
+    object-fit: cover;
+}
+
+.attachment-info {
+    display: flex;
+    flex-direction: column;
+    overflow: hidden;
+}
+
+.attachment-name {
+    font-weight: 600;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+
+.attachment-size {
+    font-size: 11px;
+    color: var(--text-muted);
+}
+
+/* Feed Card Footer Actions */
+.feed-card-footer {
+    display: flex;
+    justify-content: flex-end;
+    gap: 8px;
+    margin-top: 12px;
+    padding-top: 10px;
+    border-top: 1px solid rgba(255, 255, 255, 0.05);
+}
+
+/* 4. Managerial Overview Cards */
+.managerial-cards-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+    gap: 20px;
+}
+
+.managerial-user-card {
+    background-color: var(--bg-card);
+    border: 1px solid var(--border-color);
+    border-radius: 12px;
+    padding: 20px;
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.05);
+    display: flex;
+    flex-direction: column;
+    justify-content: space-between;
+}
+
+.managerial-user-card.inactive-alert {
+    border: 1px solid #ef4444;
+    background: linear-gradient(180deg, var(--bg-card), rgba(239, 68, 68, 0.05));
+}
+
+.user-card-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    margin-bottom: 14px;
+    padding-bottom: 12px;
+    border-bottom: 1px solid var(--border-color);
+}
+
+.user-card-title {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+}
+
+.user-card-metrics {
+    display: grid;
+    grid-template-columns: 1fr 1fr 1fr;
+    gap: 10px;
+    margin: 12px 0;
+    background: var(--bg-main);
+    padding: 10px;
+    border-radius: 8px;
+    text-align: center;
+}
+
+.metric-item label {
+    font-size: 11px;
+    color: var(--text-muted);
+    display: block;
+}
+
+.metric-item span {
+    font-size: 16px;
+    font-weight: 700;
+}
+
+.managerial-section-block {
+    margin-top: 10px;
+    font-size: 13px;
+}
+
+.managerial-section-block label {
+    font-weight: 700;
+    font-size: 11px;
+    text-transform: uppercase;
+    color: var(--text-muted);
+    display: block;
+    margin-bottom: 4px;
+}
+
+/* 5. Mobile & Responsive Layout Adjustments */
+@media (max-width: 768px) {
+    .plan-toolbar, .bitacora-toolbar {
+        flex-direction: column;
+        align-items: stretch;
+        gap: 12px;
+    }
+    .plan-subtabs, .bitacora-subtabs {
+        width: 100%;
+        justify-content: flex-start;
+    }
+    .subtab-btn {
+        padding: 8px 12px;
+        font-size: 13px;
+    }
+    .feed-card-header {
+        flex-direction: column;
+        align-items: flex-start;
+    }
+    .feed-card-meta {
+        width: 100%;
+        justify-content: space-between;
+    }
+    .col-span-2, .col-span-3 {
+        grid-column: span 1 !important;
+    }
+}
+
+/* 6. Plan de Actividades & Métricos Styling */
+.plan-toolbar {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    border-bottom: 2px solid var(--border-color);
+    padding-bottom: 4px;
+}
+
+.plan-subtabs {
+    display: flex;
+    gap: 8px;
+    overflow-x: auto;
+}
+
+.savings-breakdown-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(260px, 1fr));
+    gap: 18px;
+}
+
+.savings-card {
+    background-color: var(--bg-card);
+    border: 1px solid var(--border-color);
+    border-radius: 12px;
+    padding: 18px;
+    box-shadow: var(--shadow-sm);
+    transition: transform 0.2s ease, box-shadow 0.2s ease;
+}
+
+.savings-card:hover {
+    transform: translateY(-2px);
+    box-shadow: var(--shadow-md);
+}
+
+.savings-card-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 12px;
+    padding-bottom: 8px;
+    border-bottom: 1px solid var(--border-color);
+}
+
+.savings-title {
+    font-size: 14px;
+    font-weight: 700;
+    color: var(--text-main);
+    display: flex;
+    align-items: center;
+    gap: 8px;
+}
+
+.savings-badge {
+    padding: 3px 8px;
+    border-radius: 20px;
+    font-size: 11px;
+    font-weight: 700;
+    letter-spacing: 0.3px;
+}
+
+.badge-hard { background: rgba(16, 185, 129, 0.15); color: #10b981; border: 1px solid rgba(16, 185, 129, 0.3); }
+.badge-soft { background: rgba(59, 130, 246, 0.15); color: #3b82f6; border: 1px solid rgba(59, 130, 246, 0.3); }
+.badge-onetime { background: rgba(245, 158, 11, 0.15); color: #f59e0b; border: 1px solid rgba(245, 158, 11, 0.3); }
+.badge-inventory { background: rgba(168, 85, 247, 0.15); color: #a855f7; border: 1px solid rgba(168, 85, 247, 0.3); }
+
+.savings-metrics-row {
+    display: grid;
+    grid-template-columns: 1fr 1fr 1fr;
+    gap: 10px;
+    margin-bottom: 10px;
+    text-align: center;
+    background: var(--bg-main);
+    padding: 10px;
+    border-radius: 8px;
+}
+
+.s-metric label {
+    font-size: 11px;
+    color: var(--text-muted);
+    display: block;
+}
+
+.s-metric span {
+    font-size: 14px;
+    font-weight: 700;
+}
+
+.badge-status-pill.pendiente {
+    background-color: rgba(100, 116, 139, 0.2);
+    color: #64748b;
+    border: 1px solid rgba(100, 116, 139, 0.4);
+}
+
+.badge-status-pill.en-riesgo {
+    background-color: rgba(245, 158, 11, 0.2);
+    color: #f59e0b;
+    border: 1px solid rgba(245, 158, 11, 0.4);
+}
+
+/* Ranking de Responsables Component Styles */
+.ranking-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(260px, 1fr));
+    gap: 18px;
+    margin-top: 15px;
+}
+
+.ranking-card {
+    background-color: var(--bg-card);
+    border: 1px solid var(--border-color);
+    border-radius: 12px;
+    padding: 18px;
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+    box-shadow: var(--shadow-sm);
+    transition: transform 0.2s ease, box-shadow 0.2s ease;
+    position: relative;
+}
+
+.ranking-card:hover {
+    transform: translateY(-2px);
+    box-shadow: var(--shadow-md);
+}
+
+.ranking-card.rank-1 {
+    border-color: #f59e0b;
+    background: linear-gradient(135deg, var(--bg-card), rgba(245, 158, 11, 0.08));
+}
+
+.ranking-card.rank-2 {
+    border-color: #94a3b8;
+    background: linear-gradient(135deg, var(--bg-card), rgba(148, 163, 184, 0.08));
+}
+
+.ranking-card.rank-3 {
+    border-color: #b45309;
+    background: linear-gradient(135deg, var(--bg-card), rgba(180, 83, 9, 0.08));
+}
+
+.ranking-card-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+}
+
+.ranking-badge {
+    width: 36px;
+    height: 36px;
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-weight: 800;
+    font-size: 15px;
+    flex-shrink: 0;
+}
+
+.ranking-badge.rank-1 { background: #f59e0b; color: #000000; box-shadow: 0 0 10px rgba(245, 158, 11, 0.4); }
+.ranking-badge.rank-2 { background: #94a3b8; color: #000000; }
+.ranking-badge.rank-3 { background: #b45309; color: #ffffff; }
+.ranking-badge.rank-other { background: var(--blue-sem); color: var(--blue-sem-text); border: 1px solid var(--border-color); }
+
+.ranking-user-name {
+    font-size: 16px;
+    font-weight: 800;
+    color: var(--text-main);
+}
+
+.ranking-metrics-grid {
+    display: grid;
+    grid-template-columns: 1fr 1fr 1fr;
+    gap: 8px;
+    background: var(--bg-main);
+    padding: 10px;
+    border-radius: 8px;
+    text-align: center;
+}
+
+.ranking-metric-item label {
+    font-size: 11px;
+    color: var(--text-muted);
+    display: block;
+}
+
+.ranking-metric-item span {
+    font-size: 13px;
+    font-weight: 700;
+}
+
+/* Savings Lines inside Activity Modal */
+.savings-line-card {
+    background: rgba(255, 255, 255, 0.02);
+    border: 1px solid var(--border-color);
+    border-radius: 8px;
+    padding: 12px 14px;
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+    transition: var(--transition);
+}
+
+.savings-line-card:hover {
+    border-color: rgba(99, 102, 241, 0.4);
+    box-shadow: var(--shadow-sm);
+}
+
+/* Column Specific Styles for Plan Actividades Table */
+#plan-actividades-table {
+    width: 100%;
+    border-collapse: collapse;
+    table-layout: auto;
+}
+
+#plan-actividades-table th,
+#plan-actividades-table td {
+    vertical-align: middle;
+    padding: 12px 14px;
+}
+
+/* Columna Actividad: Salto de línea automático, ancho amplio, sin truncado */
+#plan-actividades-table .col-activity,
+.table-activity-cell {
+    min-width: 280px;
+    max-width: 450px;
+    width: 32%;
+    white-space: normal !important;
+    word-break: break-word !important;
+    overflow-wrap: break-word !important;
+    line-height: 1.45;
+}
+
+#plan-actividades-table td.col-activity strong,
+.table-activity-cell strong {
+    white-space: normal !important;
+    word-break: break-word !important;
+    overflow-wrap: break-word !important;
+    display: block;
+}
+
+/* Columna Responsable */
+#plan-actividades-table .col-resp {
+    min-width: 120px;
+    white-space: nowrap;
+}
+
+/* Columna Tipo Ahorro: Ancho menor */
+#plan-actividades-table .col-savings-type {
+    min-width: 110px;
+    white-space: nowrap;
+}
+
+/* Columnas Numéricas y Metas */
+#plan-actividades-table .col-meta,
+#plan-actividades-table .col-real {
+    min-width: 130px;
+    white-space: nowrap;
+}
+
+#plan-actividades-table .col-compliance {
+    min-width: 110px;
+    white-space: nowrap;
+}
+
+/* Status, Prioridad, Acciones */
+#plan-actividades-table .col-status,
+#plan-actividades-table .col-priority,
+#plan-actividades-table .col-time,
+#plan-actividades-table .col-evidences,
+#plan-actividades-table .col-actions {
+    white-space: nowrap;
+}
+
+
+
+
 

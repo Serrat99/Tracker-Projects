@@ -3,6 +3,21 @@
 // 1. Initial State Definition
 let state = {
     projects: [],
+    planActivities: [],
+    responsables: [],
+    savingsRecords: [],
+    savingsSelectedResponsable: 'all',
+    savingsSortBy: 'savings_desc',
+    currentSavingEditId: null,
+    currentRespEditId: null,
+    planFilters: {
+        search: '',
+        user: '',
+        status: '',
+        priority: '',
+        savingsType: ''
+    },
+    planSubtab: 'plan',
     config: {
         agingLimit: 60,
         warningDays: 10
@@ -10,6 +25,7 @@ let state = {
     notifications: [],
     currentView: 'dashboard',
     currentProjectId: null,
+    currentActivityId: null,
     theme: 'dark',
     sortColumn: 'id',
     sortAscending: true,
@@ -90,6 +106,144 @@ const MOCK_PROJECTS = [
         description: "Disminuir defectos por burbujas en proceso de inyección mediante optimización de parámetros de temperatura y presión.",
         comments: "Fase de planeación. Definiendo el plan de instrumentación de las cavidades del molde.",
         lastUpdated: "2026-08-01T11:00:00.000Z"
+    }
+];
+
+// Mock Plan de Actividades Entries (with Meta Esperada, Ahorro Real Validado, Savings Types, Status, etc.)
+const MOCK_ACTIVITIES = [
+    {
+        id: "ACT-101",
+        activity: "Optimización y reducción de tiempos muertos en celda de ensamble",
+        userName: "Jose",
+        targetDate: "2026-10-15",
+        closeDate: "2026-10-08",
+        status: "En Proceso",
+        priority: "Alta",
+        minutes: 240,
+        progress: 80,
+        hasSavings: "si",
+        savingsType: "Hard, Soft",
+        targetSavings: 50000,
+        actualSavings: 40000,
+        savingsLines: [
+            { id: "sl-101-1", savingsType: "Hard", targetSavings: 30000, actualSavings: 25000, validationDate: "2026-10-08", financialComment: "Ahorro directo por paros de línea" },
+            { id: "sl-101-2", savingsType: "Soft", targetSavings: 20000, actualSavings: 15000, validationDate: "2026-10-08", financialComment: "Optimización de horas setup" }
+        ],
+        comments: "Reducción del 80% en paros no programados.",
+        nextAction: "Estandarizar en turno 2.",
+        attachments: [
+            { id: "att-1", name: "Reporte_Validacion_Jose.pdf", type: "pdf", size: "1.8 MB", date: "2026-10-08", userName: "Jose" }
+        ]
+    },
+    {
+        id: "ACT-102",
+        activity: "Rediseño de flujo de trabajo y balanceo de líneas de empaque",
+        userName: "Montserrat",
+        targetDate: "2026-10-25",
+        closeDate: "2026-10-05",
+        status: "Completado",
+        priority: "Alta",
+        minutes: 310,
+        progress: 100,
+        hasSavings: "si",
+        savingsType: "Soft, One Time",
+        targetSavings: 70000,
+        actualSavings: 65000,
+        savingsLines: [
+            { id: "sl-102-1", savingsType: "Soft", targetSavings: 50000, actualSavings: 45000, validationDate: "2026-10-05", financialComment: "Productividad por rebalanceo de empacado" },
+            { id: "sl-102-2", savingsType: "One Time", targetSavings: 20000, actualSavings: 20000, validationDate: "2026-10-05", financialComment: "Recuperación de empaque reutilizable" }
+        ],
+        comments: "Pruebas de balanceo completadas exitosamente.",
+        nextAction: "Monitoreo semanal.",
+        attachments: [
+            { id: "att-2", name: "Balanceo_Empaque_Montserrat.pptx", type: "powerpoint", size: "4.5 MB", date: "2026-10-05", userName: "Montserrat" }
+        ]
+    },
+    {
+        id: "ACT-103",
+        activity: "Reducción de inventario de materia prima WIP mediante supermercado Kanban",
+        userName: "Misael",
+        targetDate: "2026-10-20",
+        closeDate: "2026-10-07",
+        status: "Completado",
+        priority: "Media",
+        minutes: 180,
+        progress: 100,
+        hasSavings: "si",
+        savingsType: "Inventory",
+        targetSavings: 40000,
+        actualSavings: 35000,
+        savingsLines: [
+            { id: "sl-103-1", savingsType: "Inventory", targetSavings: 40000, actualSavings: 35000, validationDate: "2026-10-07", financialComment: "Disminución comprobada en almacenamiento WIP." }
+        ],
+        comments: "Implementación de tarjetas Kanban de 2 contenedores.",
+        nextAction: "Auditoría diaria.",
+        attachments: [
+            { id: "att-3", name: "Auditoria_Kanban_Misael.xlsx", type: "excel", size: "1.1 MB", date: "2026-10-07", userName: "Misael" }
+        ]
+    },
+    {
+        id: "ACT-104",
+        activity: "Reacondicionamiento por única ocasión de troquel prensa 800T",
+        userName: "Alan",
+        targetDate: "2026-10-28",
+        closeDate: "",
+        status: "En Proceso",
+        priority: "Alta",
+        minutes: 150,
+        progress: 75,
+        hasSavings: "si",
+        savingsType: "One Time",
+        targetSavings: 30000,
+        actualSavings: 25000,
+        savingsLines: [
+            { id: "sl-104-1", savingsType: "One Time", targetSavings: 30000, actualSavings: 25000, validationDate: "2026-10-02", financialComment: "Evitamiento de compra de troquel nuevo." }
+        ],
+        comments: "Reacondicionamiento en taller de matriz.",
+        nextAction: "Prueba de troquelado.",
+        attachments: [
+            { id: "att-4", name: "Cotizacion_Troquel_Alan.docx", type: "word", size: "950 KB", date: "2026-10-02", userName: "Alan" }
+        ]
+    },
+    {
+        id: "ACT-105",
+        activity: "Implementación de Poka Yoke en sensor de posición de prensa 600T",
+        userName: "Carlos Gómez",
+        targetDate: "2026-10-30",
+        closeDate: "2026-10-09",
+        status: "Completado",
+        priority: "Alta",
+        minutes: 200,
+        progress: 100,
+        hasSavings: "si",
+        savingsType: "Hard",
+        targetSavings: 45000,
+        actualSavings: 45000,
+        savingsLines: [
+            { id: "sl-105-1", savingsType: "Hard", targetSavings: 45000, actualSavings: 45000, validationDate: "2026-10-09", financialComment: "Eliminación de scrap en troquelado de lámina." }
+        ],
+        comments: "Prueba de 1,000 ciclos sin fallas.",
+        nextAction: "Cierre de proyecto.",
+        attachments: []
+    },
+    {
+        id: "ACT-106",
+        activity: "Auditoría de estandarización 5S y rutina de orden en celdas de maquinado",
+        userName: "Carlos Gómez",
+        targetDate: "2026-11-05",
+        closeDate: "",
+        status: "En Proceso",
+        priority: "Baja",
+        minutes: 120,
+        progress: 40,
+        hasSavings: "no",
+        savingsType: "-",
+        targetSavings: 0,
+        actualSavings: 0,
+        savingsLines: [],
+        comments: "Actividad operativa de auditoría y disciplina operativa (Sin impacto económico directo).",
+        nextAction: "Revisión de checklist semanal.",
+        attachments: []
     }
 ];
 
@@ -275,6 +429,8 @@ function switchView(viewName) {
         renderProjectsTable();
     } else if (viewName === 'reports') {
         renderReportsCharts();
+    } else if (viewName === 'plan-actividades') {
+        renderPlanActividadesView();
     }
     
     window.scrollTo(0, 0);
@@ -1738,11 +1894,1870 @@ function exportDashboardToPDF() {
     });
 }
 
+// ==========================================================================
+// PLAN DE ACTIVIDADES & MÉTRICOS DE AHORRO CONTROLLER & ENGINES
+// ==========================================================================
+
+let planCharts = {};
+
+async function fetchPlanActivitiesFromSupabase() {
+    let localData = localStorage.getItem('lean_tracker_plan_activities');
+    if (localData) {
+        try {
+            state.planActivities = JSON.parse(localData);
+        } catch (e) {
+            console.error("Error al cargar plan de actividades local:", e);
+        }
+    }
+
+    if (!state.planActivities || state.planActivities.length === 0) {
+        state.planActivities = JSON.parse(JSON.stringify(MOCK_ACTIVITIES));
+        localStorage.setItem('lean_tracker_plan_activities', JSON.stringify(state.planActivities));
+    }
+
+    if (window.supabaseClient && window.SUPABASE_URL !== "YOUR_SUPABASE_URL") {
+        try {
+            const { data, error } = await window.supabaseClient
+                .from('plan_actividades')
+                .select('*')
+                .order('id', { ascending: false });
+
+            if (!error && data && data.length > 0) {
+                state.planActivities = data;
+                localStorage.setItem('lean_tracker_plan_activities', JSON.stringify(state.planActivities));
+            } else if (!error && data && data.length === 0) {
+                const { data: inserted } = await window.supabaseClient
+                    .from('plan_actividades')
+                    .insert(state.planActivities)
+                    .select();
+                if (inserted && inserted.length > 0) {
+                    state.planActivities = inserted;
+                    localStorage.setItem('lean_tracker_plan_activities', JSON.stringify(state.planActivities));
+                }
+            }
+        } catch (err) {
+            console.log("Supabase table 'plan_actividades' no configurada aún, usando LocalStorage.");
+        }
+    }
+}
+
+async function savePlanActivityToPersistence(item) {
+    const existingIndex = state.planActivities.findIndex(b => b.id === item.id);
+    if (existingIndex >= 0) {
+        state.planActivities[existingIndex] = item;
+    } else {
+        state.planActivities.unshift(item);
+    }
+    localStorage.setItem('lean_tracker_plan_activities', JSON.stringify(state.planActivities));
+
+    if (window.supabaseClient && window.SUPABASE_URL !== "YOUR_SUPABASE_URL") {
+        try {
+            await window.supabaseClient
+                .from('plan_actividades')
+                .upsert([item]);
+        } catch (err) {
+            console.warn("Sincronización Supabase diferida (guardado en LocalStorage):", err);
+        }
+    }
+}
+
+async function deletePlanActivityFromPersistence(id) {
+    state.planActivities = state.planActivities.filter(b => b.id !== id);
+    localStorage.setItem('lean_tracker_plan_activities', JSON.stringify(state.planActivities));
+
+    if (window.supabaseClient && window.SUPABASE_URL !== "YOUR_SUPABASE_URL") {
+        try {
+            await window.supabaseClient
+                .from('plan_actividades')
+                .delete()
+                .eq('id', id);
+        } catch (err) {
+            console.warn("No se pudo eliminar actividad en Supabase:", err);
+        }
+    }
+}
+
+function populatePlanUserFilter() {
+    const userSelect = document.getElementById('plan-filter-user');
+    if (!userSelect) return;
+
+    const currentVal = userSelect.value;
+    const users = Array.from(new Set(state.planActivities.map(b => b.userName))).filter(Boolean).sort();
+
+    userSelect.innerHTML = `<option value="">Todos los responsables</option>` +
+        users.map(u => `<option value="${u}" ${u === currentVal ? 'selected' : ''}>${u}</option>`).join('');
+}
+
+function getFilteredPlanActivities() {
+    const { search, user, status, priority, savingsType } = state.planFilters;
+    const searchLower = (search || '').toLowerCase();
+
+    return state.planActivities.filter(b => {
+        if (user && b.userName !== user) return false;
+        if (status && b.status !== status) return false;
+        if (priority && b.priority !== priority) return false;
+        if (savingsType && b.savingsType !== savingsType) return false;
+
+        if (searchLower) {
+            const actMatch = (b.activity || '').toLowerCase().includes(searchLower);
+            const userMatch = (b.userName || '').toLowerCase().includes(searchLower);
+            const commMatch = (b.comments || '').toLowerCase().includes(searchLower);
+            const nextMatch = (b.nextAction || '').toLowerCase().includes(searchLower);
+            if (!actMatch && !userMatch && !commMatch && !nextMatch) return false;
+        }
+
+        return true;
+    });
+}
+
+function formatMinutes(min) {
+    const m = parseInt(min || 0);
+    const h = (m / 60).toFixed(1);
+    return `${m} min (${h} hrs)`;
+}
+
+function formatCurrency(amount) {
+    const num = parseFloat(amount || 0);
+    return '$' + num.toLocaleString('en-US');
+}
+
+function renderPlanActividadesView() {
+    populatePlanUserFilter();
+
+    const filtered = getFilteredPlanActivities();
+    const countEl = document.getElementById('plan-results-count');
+    if (countEl) countEl.innerText = `Mostrando ${filtered.length} de ${state.planActivities.length} actividades`;
+
+    if (state.planSubtab === 'plan') {
+        renderPlanTable(filtered);
+    } else if (state.planSubtab === 'metricos') {
+        renderPlanMetricos(filtered);
+    } else if (state.planSubtab === 'dashboard') {
+        renderPlanDashboard(filtered);
+    } else if (state.planSubtab === 'evidencias') {
+        renderPlanEvidencias(filtered);
+    }
+}
+
+function switchPlanSubtab(subtabName) {
+    console.log("Pestaña seleccionada:", subtabName);
+    state.planSubtab = subtabName;
+
+    document.querySelectorAll('#view-plan-actividades .subtab-btn').forEach(btn => {
+        btn.classList.remove('active');
+        if (btn.getAttribute('data-subtab') === subtabName) {
+            btn.classList.add('active');
+        }
+    });
+
+    document.querySelectorAll('#view-plan-actividades .subtab-content').forEach(content => {
+        content.style.display = 'none';
+        content.classList.remove('active');
+    });
+
+    const activeContent = document.getElementById(`subtab-plan-${subtabName}`);
+    if (activeContent) {
+        activeContent.style.display = 'block';
+        activeContent.classList.add('active');
+    }
+
+    renderPlanActividadesView();
+}
+
+function escapeHtml(str) {
+    if (!str) return '';
+    return String(str)
+        .replace(/&/g, '&amp;')
+        .replace(/</g, '&lt;')
+        .replace(/>/g, '&gt;')
+        .replace(/"/g, '&quot;')
+        .replace(/'/g, '&#039;');
+}
+
+function renderPlanTable(activities) {
+    const tbody = document.getElementById('plan-actividades-table-body');
+    if (!tbody) return;
+
+    if (activities.length === 0) {
+        tbody.innerHTML = `<tr><td colspan="11" class="text-center" style="padding: 24px;">No se encontraron actividades con los filtros seleccionados.</td></tr>`;
+        return;
+    }
+
+    tbody.innerHTML = activities.map(act => {
+        const statusClass = act.status === 'Completado' ? 'completado' :
+                           act.status === 'En Proceso' ? 'en-proceso' :
+                           act.status === 'En Riesgo' ? 'en-riesgo' :
+                           act.status === 'Bloqueado' ? 'bloqueado' : 'pendiente';
+
+        const priorityClass = `priority-${(act.priority || 'media').toLowerCase()}`;
+        const hasSavings = (act.hasSavings === 'si' || act.hasSavings === true);
+        const lines = getActivitySavingsLines(act);
+
+        let typeHtml = '';
+        let targetVal = 0;
+        let actualVal = 0;
+
+        if (!hasSavings || lines.length === 0) {
+            typeHtml = `<span class="badge" style="background: rgba(148,163,184,0.1); color: var(--text-muted); border: 1px dashed var(--border-color);">Sin Ahorro</span>`;
+        } else {
+            lines.forEach(l => {
+                targetVal += Math.max(0, parseFloat(l.targetSavings || 0));
+                actualVal += Math.max(0, parseFloat(l.actualSavings || 0));
+            });
+            const uniqueTypes = [...new Set(lines.map(l => l.savingsType || 'Hard'))];
+            if (uniqueTypes.length === 1) {
+                const sType = uniqueTypes[0];
+                const badgeClass = `badge-${sType.toLowerCase().replace(/\s+/g, '')}`;
+                typeHtml = `<span class="savings-badge ${badgeClass}">${sType}</span>`;
+            } else {
+                typeHtml = `<span class="savings-badge badge-hard" title="${uniqueTypes.join(', ')}">Múltiple (${uniqueTypes.length})</span>`;
+            }
+        }
+
+        const compObj = hasSavings ? formatCategoryCompliance(actualVal, targetVal) : { text: "N/A" };
+        const attCount = act.attachments ? act.attachments.length : 0;
+        const actTitleEscaped = escapeHtml(act.activity);
+
+        return `
+            <tr>
+                <td class="col-activity" title="${actTitleEscaped}">
+                    <strong style="font-size: 14px; color: var(--text-main); white-space: normal; word-break: break-word; overflow-wrap: break-word; display: block;">${act.activity}</strong>
+                </td>
+                <td class="col-resp"><strong>${act.userName}</strong></td>
+                <td class="col-savings-type">${typeHtml}</td>
+                <td class="col-meta"><strong>${hasSavings ? formatCurrency(targetVal) : '<span style="color: var(--text-muted);">$0.00</span>'}</strong></td>
+                <td class="col-real"><strong>${hasSavings ? `<span class="text-success">${formatCurrency(actualVal)}</span>` : '<span style="color: var(--text-muted);">$0.00</span>'}</strong></td>
+                <td class="col-compliance">
+                    <span class="badge" style="background: ${hasSavings ? 'var(--purple-sem)' : 'rgba(148,163,184,0.1)'}; color: ${hasSavings ? 'var(--purple-sem-text)' : 'var(--text-muted)'}; font-weight: 700;">
+                        ${compObj.text}
+                    </span>
+                </td>
+                <td class="col-status"><span class="badge-status-pill ${statusClass}">${act.status}</span></td>
+                <td class="col-priority"><span class="badge-priority ${priorityClass}">${act.priority}</span></td>
+                <td class="col-time"><strong>${formatMinutes(act.minutes)}</strong></td>
+                <td class="col-evidences">
+                    ${attCount > 0 ? `
+                        <button class="btn btn-secondary btn-sm" onclick="openPlanActivityModal('${act.id}')" title="Ver evidencias">
+                            <i class="fa-solid fa-paperclip text-blue"></i> ${attCount} archivo(s)
+                        </button>
+                    ` : '<span style="color: var(--text-muted); font-size: 12px;">Sin archivo</span>'}
+                </td>
+                <td class="col-actions" style="white-space: nowrap;">
+                    <button class="btn btn-icon-only btn-secondary" onclick="openPlanActivityModal('${act.id}')" title="Editar Actividad"><i class="fa-solid fa-pen-to-square"></i></button>
+                    <button class="btn btn-icon-only btn-danger" onclick="confirmDeletePlanActivity('${act.id}')" title="Eliminar Actividad"><i class="fa-solid fa-trash"></i></button>
+                </td>
+            </tr>
+        `;
+    }).join('');
+}
+
+// ==========================================
+// MÉTRICOS DE AHORRO MANAGEMENT & PERSISTENCE
+// ==========================================
+
+const DEFAULT_RESPONSABLES = [
+    {
+        id: "resp-1",
+        name: "Jose",
+        area: "Producción",
+        targetHard: 50000,
+        targetSoft: 20000,
+        targetOneTime: 20000,
+        targetInventory: 10000,
+        targetTotal: 100000
+    },
+    {
+        id: "resp-2",
+        name: "Montserrat",
+        area: "Calidad",
+        targetHard: 60000,
+        targetSoft: 30000,
+        targetOneTime: 10000,
+        targetInventory: 20000,
+        targetTotal: 120000
+    },
+    {
+        id: "resp-3",
+        name: "Misael",
+        area: "Logística",
+        targetHard: 40000,
+        targetSoft: 15000,
+        targetOneTime: 15000,
+        targetInventory: 30000,
+        targetTotal: 100000
+    },
+    {
+        id: "resp-4",
+        name: "Alan",
+        area: "Ingeniería",
+        targetHard: 45000,
+        targetSoft: 25000,
+        targetOneTime: 10000,
+        targetInventory: 20000,
+        targetTotal: 100000
+    }
+];
+
+const DEFAULT_SAVINGS_RECORDS = [
+    {
+        id: "SAV-101",
+        responsable: "Jose",
+        savingsType: "Hard",
+        description: "Optimización de tiempo de ciclo en ensamble de chasis",
+        amount: 20000,
+        date: "2026-09-15",
+        evidence: "Validacion_Finanzas_Jose_Hard.pdf",
+        comments: "Reducción directa de tiempos muertos comprobada."
+    },
+    {
+        id: "SAV-102",
+        responsable: "Jose",
+        savingsType: "Soft",
+        description: "Reducción de horas extras por kaizen de flujo de material",
+        amount: 15000,
+        date: "2026-09-20",
+        evidence: "Reporte_HorasHombre_Q3.xlsx",
+        comments: "Liberación de horas-hombre en turno nocturno."
+    },
+    {
+        id: "SAV-103",
+        responsable: "Jose",
+        savingsType: "One Time",
+        description: "Reutilización de herramental de troquelado reacondicionado",
+        amount: 8000,
+        date: "2026-09-28",
+        evidence: "Factura_Reacondicionamiento.pdf",
+        comments: "Evitamiento de compra de troquel nuevo."
+    },
+    {
+        id: "SAV-104",
+        responsable: "Jose",
+        savingsType: "Inventory",
+        description: "Disminución de stock de seguridad de componentes metálicos",
+        amount: 2000,
+        date: "2026-10-02",
+        evidence: "Auditoria_Inventario_Oct.xlsx",
+        comments: "Reducción en almacén central."
+    },
+    {
+        id: "SAV-105",
+        responsable: "Montserrat",
+        savingsType: "Hard",
+        description: "Reducción de scrap por inspección con visión artificial",
+        amount: 35000,
+        date: "2026-09-10",
+        evidence: "Reporte_Scrap_Calidad.pdf",
+        comments: "Disminución del 40% en rechazos de línea 2."
+    },
+    {
+        id: "SAV-106",
+        responsable: "Montserrat",
+        savingsType: "Soft",
+        description: "Estandarización de reportes de calidad y auditoría rápida",
+        amount: 18000,
+        date: "2026-09-25",
+        evidence: "Matriz_Calidad_Digital.pptx",
+        comments: "Ahorro en tiempos administrativos."
+    },
+    {
+        id: "SAV-107",
+        responsable: "Montserrat",
+        savingsType: "Inventory",
+        description: "Control Kanban en área de cuarentena de producto terminado",
+        amount: 12000,
+        date: "2026-10-05",
+        evidence: "Kanban_Cuarentena.xlsx",
+        comments: "Rotación acelerada de producto retenido."
+    },
+    {
+        id: "SAV-108",
+        responsable: "Misael",
+        savingsType: "Hard",
+        description: "Optimización de rutas de transporte interno y consolidación",
+        amount: 25000,
+        date: "2026-09-18",
+        evidence: "Rutas_Transporte_Logistica.pdf",
+        comments: "Reducción de fletes externos de urgencia."
+    },
+    {
+        id: "SAV-109",
+        responsable: "Misael",
+        savingsType: "Inventory",
+        description: "Reducción de contenedores WIP en pasillos de producción",
+        amount: 22000,
+        date: "2026-10-01",
+        evidence: "Conteo_WIP_Logistica.xlsx",
+        comments: "Liberación de espacio físico y capital de trabajo."
+    },
+    {
+        id: "SAV-110",
+        responsable: "Alan",
+        savingsType: "Hard",
+        description: "Modificación de herramental para eliminación de paros",
+        amount: 30000,
+        date: "2026-09-12",
+        evidence: "Plano_Herramental_Modificado.pdf",
+        comments: "Mayor disponibilidad de equipo en prensa 800T."
+    },
+    {
+        id: "SAV-111",
+        responsable: "Alan",
+        savingsType: "Soft",
+        description: "Digitalización de hojas de instrucción de trabajo interactiva",
+        amount: 10000,
+        date: "2026-09-29",
+        evidence: "Instrucciones_Digitales.docx",
+        comments: "Reducción en tiempos de entrenamiento de nuevos operadores."
+    },
+    {
+        id: "SAV-112",
+        responsable: "Alan",
+        savingsType: "One Time",
+        description: "Reparación interna de husillo de maquinado CNC",
+        amount: 5000,
+        date: "2026-10-04",
+        evidence: "Orden_Trabajo_CNC.pdf",
+        comments: "Ahorro vs contratar proveedor externo."
+    }
+];
+
+function loadResponsablesFromStorage() {
+    let raw = localStorage.getItem('lean_tracker_responsables');
+    if (raw) {
+        try {
+            state.responsables = JSON.parse(raw);
+        } catch (e) {
+            state.responsables = JSON.parse(JSON.stringify(DEFAULT_RESPONSABLES));
+        }
+    } else {
+        state.responsables = JSON.parse(JSON.stringify(DEFAULT_RESPONSABLES));
+        localStorage.setItem('lean_tracker_responsables', JSON.stringify(state.responsables));
+    }
+}
+
+function saveResponsablesToStorage() {
+    localStorage.setItem('lean_tracker_responsables', JSON.stringify(state.responsables));
+    updateTeamUsersDatalist();
+}
+
+function loadSavingsRecordsFromStorage() {
+    let raw = localStorage.getItem('lean_tracker_savings_records');
+    if (raw) {
+        try {
+            state.savingsRecords = JSON.parse(raw);
+        } catch (e) {
+            state.savingsRecords = JSON.parse(JSON.stringify(DEFAULT_SAVINGS_RECORDS));
+        }
+    } else {
+        state.savingsRecords = JSON.parse(JSON.stringify(DEFAULT_SAVINGS_RECORDS));
+        localStorage.setItem('lean_tracker_savings_records', JSON.stringify(state.savingsRecords));
+    }
+}
+
+function saveSavingsRecordsToStorage() {
+    localStorage.setItem('lean_tracker_savings_records', JSON.stringify(state.savingsRecords));
+}
+
+function updateTeamUsersDatalist() {
+    const listEl = document.getElementById('team-users-list');
+    if (listEl && state.responsables) {
+        listEl.innerHTML = state.responsables.map(r => `<option value="${r.name}">`).join('');
+    }
+}
+
+function getAllActualSavingsRecords() {
+    const records = [...(state.savingsRecords || [])];
+    if (state.planActivities) {
+        state.planActivities.forEach(act => {
+            if (act.hasSavings === 'si' && parseFloat(act.savingsAmount || 0) > 0) {
+                const exists = records.some(r => r.id === act.id);
+                if (!exists) {
+                    records.push({
+                        id: act.id,
+                        responsable: act.userName || 'No asignado',
+                        savingsType: act.savingsType || 'Hard',
+                        description: act.activity,
+                        amount: parseFloat(act.savingsAmount || 0),
+                        date: act.validationDate || act.closeDate || act.targetDate || '',
+                        evidence: act.attachments && act.attachments.length > 0 ? act.attachments[0].name : 'Actividad Plan',
+                        comments: act.financialComment || act.comments || ''
+                    });
+                }
+            }
+        });
+    }
+    return records;
+}
+
+// ==========================================
+// FORMULAS & AUDIT ENGINE FOR MÉTRICOS DE AHORRO
+// ==========================================
+
+function formatCategoryCompliance(actual, meta) {
+    const numericMeta = parseFloat(meta || 0);
+    const numericActual = parseFloat(actual || 0);
+
+    if (isNaN(numericMeta) || numericMeta <= 0) {
+        return { text: "Sin Meta", isNumeric: false, pct: 0 };
+    }
+
+    if (isNaN(numericActual)) {
+        return { text: "0.0%", isNumeric: true, pct: 0 };
+    }
+
+    const pct = (numericActual / numericMeta) * 100;
+    if (isNaN(pct) || !isFinite(pct)) {
+        return { text: "0.0%", isNumeric: true, pct: 0 };
+    }
+
+    return { text: `${pct.toFixed(1)}%`, isNumeric: true, pct: parseFloat(pct.toFixed(1)) };
+}
+
+// Helper to extract savings lines array for an activity
+function getActivitySavingsLines(a) {
+    const hasSavings = (a.hasSavings === 'si' || a.hasSavings === true);
+    if (!hasSavings) return [];
+
+    if (Array.isArray(a.savingsLines) && a.savingsLines.length > 0) {
+        return a.savingsLines;
+    }
+
+    // Fallback for single line activities
+    const target = Math.max(0, parseFloat(a.targetSavings || a.savingsTarget || 0));
+    const actual = Math.max(0, parseFloat(a.actualSavings || a.savingsAmount || 0));
+    if (target > 0 || actual > 0) {
+        return [{
+            id: 'sl-legacy-' + (a.id || Math.random()),
+            savingsType: a.savingsType || 'Hard',
+            targetSavings: target,
+            actualSavings: actual,
+            validationDate: a.validationDate || '',
+            financialComment: a.financialComment || ''
+        }];
+    }
+
+    return [];
+}
+
+function getGlobalSavingsStats(selectedResp = 'all') {
+    let activities = state.planActivities || [];
+    if (selectedResp && selectedResp !== 'all') {
+        activities = activities.filter(a => (a.userName || '').toLowerCase() === selectedResp.toLowerCase());
+    }
+
+    let metaHard = 0, metaSoft = 0, metaOneTime = 0, metaInventory = 0;
+    let actualHard = 0, actualSoft = 0, actualOneTime = 0, actualInventory = 0;
+
+    activities.forEach(a => {
+        const lines = getActivitySavingsLines(a);
+        lines.forEach(line => {
+            const type = line.savingsType || 'Hard';
+            const target = Math.max(0, parseFloat(line.targetSavings || 0));
+            const actual = Math.max(0, parseFloat(line.actualSavings || 0));
+
+            if (type === 'Hard') {
+                metaHard += target;
+                actualHard += actual;
+            } else if (type === 'Soft') {
+                metaSoft += target;
+                actualSoft += actual;
+            } else if (type === 'One Time') {
+                metaOneTime += target;
+                actualOneTime += actual;
+            } else if (type === 'Inventory') {
+                metaInventory += target;
+                actualInventory += actual;
+            }
+        });
+    });
+
+    const metaTotal = metaHard + metaSoft + metaOneTime + metaInventory;
+    const actualTotal = actualHard + actualSoft + actualOneTime + actualInventory;
+    const complianceObj = formatCategoryCompliance(actualTotal, metaTotal);
+
+    return {
+        metaHard, metaSoft, metaOneTime, metaInventory, metaTotal,
+        actualHard, actualSoft, actualOneTime, actualInventory, actualTotal,
+        compliancePct: complianceObj.pct,
+        complianceStr: complianceObj.text
+    };
+}
+
+function getResponsablesMetricsFromActivities() {
+    const map = {};
+
+    (state.planActivities || []).forEach(a => {
+        const respName = (a.userName || 'Sin Asignar').trim();
+        if (!map[respName]) {
+            map[respName] = {
+                id: 'resp-' + respName.toLowerCase().replace(/\s+/g, '-'),
+                name: respName,
+                area: 'Plan de Actividades',
+                targetHard: 0, targetSoft: 0, targetOneTime: 0, targetInventory: 0, targetTotal: 0,
+                actualHard: 0, actualSoft: 0, actualOneTime: 0, actualInventory: 0, actualTotal: 0,
+                activitiesCount: 0
+            };
+        }
+
+        const item = map[respName];
+        item.activitiesCount++;
+
+        const lines = getActivitySavingsLines(a);
+        lines.forEach(line => {
+            const type = line.savingsType || 'Hard';
+            const target = Math.max(0, parseFloat(line.targetSavings || 0));
+            const actual = Math.max(0, parseFloat(line.actualSavings || 0));
+
+            if (type === 'Hard') {
+                item.targetHard += target;
+                item.actualHard += actual;
+            } else if (type === 'Soft') {
+                item.targetSoft += target;
+                item.actualSoft += actual;
+            } else if (type === 'One Time') {
+                item.targetOneTime += target;
+                item.actualOneTime += actual;
+            } else if (type === 'Inventory') {
+                item.targetInventory += target;
+                item.actualInventory += actual;
+            }
+
+            item.targetTotal += target;
+            item.actualTotal += actual;
+        });
+    });
+
+    const result = Object.values(map).map(r => {
+        const compTotalObj = formatCategoryCompliance(r.actualTotal, r.targetTotal);
+        const compHardObj = formatCategoryCompliance(r.actualHard, r.targetHard);
+        const compSoftObj = formatCategoryCompliance(r.actualSoft, r.targetSoft);
+        const compOneTimeObj = formatCategoryCompliance(r.actualOneTime, r.targetOneTime);
+        const compInventoryObj = formatCategoryCompliance(r.actualInventory, r.targetInventory);
+
+        return {
+            ...r,
+            complianceTotal: compTotalObj.pct,
+            complianceTotalStr: compTotalObj.text,
+            complianceHardStr: compHardObj.text,
+            complianceSoftStr: compSoftObj.text,
+            complianceOneTimeStr: compOneTimeObj.text,
+            complianceInventoryStr: compInventoryObj.text
+        };
+    });
+
+    return result;
+}
+
+function loadResponsablesFromStorage() {
+    state.responsables = getResponsablesMetricsFromActivities();
+    updateTeamUsersDatalist();
+}
+
+function saveResponsablesToStorage() {
+    updateTeamUsersDatalist();
+}
+
+function loadSavingsRecordsFromStorage() {
+    // Legacy helper - metrics are 100% computed from planActivities
+}
+
+function saveSavingsRecordsToStorage() {
+    // Legacy helper
+}
+
+function updateTeamUsersDatalist() {
+    const listEl = document.getElementById('team-users-list');
+    const users = Array.from(new Set((state.planActivities || []).map(a => a.userName))).filter(Boolean).sort();
+    if (listEl) {
+        listEl.innerHTML = users.map(u => `<option value="${u}">`).join('');
+    }
+}
+
+function renderPlanMetricos(activities) {
+    const respMetrics = getResponsablesMetricsFromActivities();
+
+    // 1. Populate Person Selector
+    const selector = document.getElementById('savings-person-selector');
+    if (selector) {
+        const currentSelected = state.savingsSelectedResponsable || 'all';
+        selector.innerHTML = `<option value="all" ${currentSelected === 'all' ? 'selected' : ''}>[ Todos ] - Vista Consolidada Global</option>` +
+            respMetrics.map(r => `<option value="${r.name}" ${currentSelected.toLowerCase() === r.name.toLowerCase() ? 'selected' : ''}>${r.name} (${r.activitiesCount} actividades)</option>`).join('');
+    }
+
+    const selectedRespName = state.savingsSelectedResponsable || 'all';
+    const globalStats = getGlobalSavingsStats(selectedRespName);
+
+    let bannerTitle = "TODOS LOS RESPONSABLES";
+    let bannerSubtitle = "Área: Consolidado General del Plan de Actividades";
+
+    if (selectedRespName !== 'all') {
+        const resp = respMetrics.find(r => r.name.toLowerCase() === selectedRespName.toLowerCase());
+        if (resp) {
+            bannerTitle = resp.name.toUpperCase();
+            bannerSubtitle = `Actividades registradas en el Plan: ${resp.activitiesCount}`;
+        }
+    }
+
+    // 2. Update Banner
+    const bannerNameEl = document.getElementById('savings-selected-person-name');
+    if (bannerNameEl) bannerNameEl.innerText = bannerTitle;
+
+    const bannerAreaEl = document.getElementById('savings-selected-person-area');
+    if (bannerAreaEl) bannerAreaEl.innerText = bannerSubtitle;
+
+    const bannerMetaEl = document.getElementById('banner-meta-total');
+    if (bannerMetaEl) bannerMetaEl.innerText = formatCurrency(globalStats.metaTotal);
+
+    const bannerActualEl = document.getElementById('banner-actual-total');
+    if (bannerActualEl) bannerActualEl.innerText = formatCurrency(globalStats.actualTotal);
+
+    const bannerPctEl = document.getElementById('banner-compliance-pct');
+    if (bannerPctEl) bannerPctEl.innerText = globalStats.complianceStr;
+
+    // 3. Update KPI Cards
+    const kpiTargetEl = document.getElementById('metric-kpi-target-total');
+    if (kpiTargetEl) kpiTargetEl.innerText = formatCurrency(globalStats.metaTotal);
+
+    const kpiActualEl = document.getElementById('metric-kpi-actual-total');
+    if (kpiActualEl) kpiActualEl.innerText = formatCurrency(globalStats.actualTotal);
+
+    const kpiComplianceEl = document.getElementById('metric-kpi-compliance-total');
+    if (kpiComplianceEl) kpiComplianceEl.innerText = globalStats.complianceStr;
+
+    // 4. Update Category Breakdown Cards
+    const compHardObj = formatCategoryCompliance(globalStats.actualHard, globalStats.metaHard);
+    const compSoftObj = formatCategoryCompliance(globalStats.actualSoft, globalStats.metaSoft);
+    const compOneTimeObj = formatCategoryCompliance(globalStats.actualOneTime, globalStats.metaOneTime);
+    const compInventoryObj = formatCategoryCompliance(globalStats.actualInventory, globalStats.metaInventory);
+
+    const updateCard = (prefix, meta, actual, compObj) => {
+        const metaEl = document.getElementById(`${prefix}-meta-val`);
+        if (metaEl) metaEl.innerText = formatCurrency(meta);
+
+        const actualEl = document.getElementById(`${prefix}-actual-val`);
+        if (actualEl) actualEl.innerText = formatCurrency(actual);
+
+        const pctEl = document.getElementById(`${prefix}-pct-val`);
+        if (pctEl) {
+            pctEl.innerText = compObj.text;
+            pctEl.style.color = "var(--purple-sem-text)";
+        }
+
+        const barEl = document.getElementById(`${prefix}-progress-bar`);
+        if (barEl) {
+            barEl.style.width = `${Math.min(compObj.pct, 100)}%`;
+        }
+    };
+
+    updateCard('hard', globalStats.metaHard, globalStats.actualHard, compHardObj);
+    updateCard('soft', globalStats.metaSoft, globalStats.actualSoft, compSoftObj);
+    updateCard('onetime', globalStats.metaOneTime, globalStats.actualOneTime, compOneTimeObj);
+    updateCard('inventory', globalStats.metaInventory, globalStats.actualInventory, compInventoryObj);
+
+    // 5. Render Ranking de Responsables
+    renderRankingResponsables(respMetrics);
+
+    // 6. Render Consolidated Summary Table
+    renderConsolidatedSavingsTable(respMetrics);
+
+    // 7. Render Plan Activities Detail Table
+    renderPlanActivitiesDetailTable(selectedRespName);
+
+    // 8. Render Savings Charts
+    renderPlanSavingsChartsDynamic(selectedRespName, respMetrics, globalStats);
+}
+
+function renderRankingResponsables(respMetrics) {
+    const grid = document.getElementById('ranking-responsables-grid');
+    if (!grid) return;
+
+    let ranked = [...respMetrics].sort((a, b) => b.actualTotal - a.actualTotal);
+
+    if (ranked.length === 0) {
+        grid.innerHTML = `<div style="grid-column: 1/-1; padding: 20px; text-align: center; color: var(--text-muted);">No hay actividades con responsables registrados.</div>`;
+        return;
+    }
+
+    grid.innerHTML = ranked.map((r, index) => {
+        const pos = index + 1;
+        const rankClass = pos === 1 ? 'rank-1' : pos === 2 ? 'rank-2' : pos === 3 ? 'rank-3' : 'rank-other';
+        const badgeClass = pos === 1 ? 'rank-1' : pos === 2 ? 'rank-2' : pos === 3 ? 'rank-3' : 'rank-other';
+
+        return `
+            <div class="ranking-card ${rankClass}">
+                <div class="ranking-card-header">
+                    <div style="display: flex; align-items: center; gap: 10px;">
+                        <div class="ranking-badge ${badgeClass}">${pos}</div>
+                        <div>
+                            <div class="ranking-user-name">${r.name}</div>
+                            <div style="font-size: 11px; color: var(--text-muted);">${r.activitiesCount} actividad(es) en plan</div>
+                        </div>
+                    </div>
+                    <span class="badge" style="background: var(--purple-sem); color: var(--purple-sem-text); font-weight: 800; font-size: 13px;">
+                        ${r.complianceTotalStr}
+                    </span>
+                </div>
+                <div class="ranking-metrics-grid">
+                    <div class="ranking-metric-item">
+                        <label>Meta Esperada</label>
+                        <span>${formatCurrency(r.targetTotal)}</span>
+                    </div>
+                    <div class="ranking-metric-item">
+                        <label>Ahorro Real</label>
+                        <span class="text-success">${formatCurrency(r.actualTotal)}</span>
+                    </div>
+                    <div class="ranking-metric-item">
+                        <label>Cumplimiento</label>
+                        <span class="text-purple">${r.complianceTotalStr}</span>
+                    </div>
+                </div>
+                <div class="progress-bar-container">
+                    <div class="progress-bar-fill bg-success" style="width: ${Math.min(r.complianceTotal, 100)}%;"></div>
+                </div>
+            </div>
+        `;
+    }).join('');
+}
+
+function renderConsolidatedSavingsTable(respMetrics) {
+    const tbody = document.getElementById('table-consolidated-savings-body');
+    if (!tbody) return;
+
+    let statsList = [...respMetrics];
+    const sortBy = state.savingsSortBy || 'savings_desc';
+
+    if (sortBy === 'savings_desc') {
+        statsList.sort((a, b) => b.actualTotal - a.actualTotal);
+    } else if (sortBy === 'compliance_desc') {
+        statsList.sort((a, b) => b.complianceTotal - a.complianceTotal);
+    } else if (sortBy === 'meta_desc') {
+        statsList.sort((a, b) => b.targetTotal - a.targetTotal);
+    } else if (sortBy === 'name_asc') {
+        statsList.sort((a, b) => a.name.localeCompare(b.name));
+    }
+
+    if (statsList.length === 0) {
+        tbody.innerHTML = `<tr><td colspan="9" class="text-center" style="padding: 20px;">No hay datos de responsables en el Plan de Actividades.</td></tr>`;
+        return;
+    }
+
+    const rankingMap = {};
+    [...respMetrics].sort((a, b) => b.actualTotal - a.actualTotal).forEach((r, idx) => {
+        rankingMap[r.name] = idx + 1;
+    });
+
+    tbody.innerHTML = statsList.map(s => {
+        const rankPos = rankingMap[s.name] || '-';
+        const rankBadge = rankPos === 1 ? '🥇 #1' : rankPos === 2 ? '🥈 #2' : rankPos === 3 ? '🥉 #3' : `#${rankPos}`;
+
+        return `
+            <tr style="${(state.savingsSelectedResponsable || '').toLowerCase() === s.name.toLowerCase() ? 'background-color: var(--blue-sem);' : ''}">
+                <td><strong style="font-weight: 800; color: var(--primary-light);">${rankBadge}</strong></td>
+                <td><strong style="font-size: 14px; color: var(--text-main);">${s.name}</strong></td>
+                <td><strong>${formatCurrency(s.targetTotal)}</strong></td>
+                <td><strong class="text-success">${formatCurrency(s.actualTotal)}</strong></td>
+                <td>
+                    <span class="badge" style="background: var(--purple-sem); color: var(--purple-sem-text); font-weight: 700;">
+                        ${s.complianceTotalStr}
+                    </span>
+                </td>
+                <td style="font-size: 12px;">
+                    ${formatCurrency(s.actualHard)} / <span style="color: var(--text-muted);">${formatCurrency(s.targetHard)}</span> <span style="font-size: 11px; font-weight: 600;">(${s.complianceHardStr})</span>
+                </td>
+                <td style="font-size: 12px;">
+                    ${formatCurrency(s.actualSoft)} / <span style="color: var(--text-muted);">${formatCurrency(s.targetSoft)}</span> <span style="font-size: 11px; font-weight: 600;">(${s.complianceSoftStr})</span>
+                </td>
+                <td style="font-size: 12px;">
+                    ${formatCurrency(s.actualOneTime)} / <span style="color: var(--text-muted);">${formatCurrency(s.targetOneTime)}</span> <span style="font-size: 11px; font-weight: 600;">(${s.complianceOneTimeStr})</span>
+                </td>
+                <td style="font-size: 12px;">
+                    ${formatCurrency(s.actualInventory)} / <span style="color: var(--text-muted);">${formatCurrency(s.targetInventory)}</span> <span style="font-size: 11px; font-weight: 600;">(${s.complianceInventoryStr})</span>
+                </td>
+            </tr>
+        `;
+    }).join('');
+}
+
+function renderPlanActivitiesDetailTable(selectedResp = 'all') {
+    const tbody = document.getElementById('table-real-savings-body');
+    if (!tbody) return;
+
+    let activities = state.planActivities || [];
+    if (selectedResp !== 'all') {
+        activities = activities.filter(a => (a.userName || '').toLowerCase() === selectedResp.toLowerCase());
+    }
+
+    const rows = [];
+    activities.forEach(act => {
+        const lines = getActivitySavingsLines(act);
+        if (lines.length === 0) return;
+
+        lines.forEach((line, idx) => {
+            const sType = line.savingsType || 'Hard';
+            const badgeClass = `badge-${sType.toLowerCase().replace(/\s+/g, '')}`;
+            const targetVal = Math.max(0, parseFloat(line.targetSavings || 0));
+            const actualVal = Math.max(0, parseFloat(line.actualSavings || 0));
+            const compObj = formatCategoryCompliance(actualVal, targetVal);
+
+            rows.push(`
+                <tr>
+                    <td style="max-width: 250px;">
+                        <strong style="font-size: 13px;">${act.activity}</strong>
+                        ${lines.length > 1 ? `<span class="badge" style="margin-left: 6px; font-size: 10px; background: rgba(99,102,241,0.15); color: var(--primary);">Línea #${idx + 1}</span>` : ''}
+                    </td>
+                    <td><strong>${act.userName}</strong></td>
+                    <td><span class="savings-badge ${badgeClass}">${sType}</span></td>
+                    <td><strong>${formatCurrency(targetVal)}</strong></td>
+                    <td><strong class="text-success" style="font-size: 14px;">${formatCurrency(actualVal)}</strong></td>
+                    <td>
+                        <span class="badge" style="background: var(--purple-sem); color: var(--purple-sem-text); font-weight: 700;">
+                            ${compObj.text}
+                        </span>
+                    </td>
+                    <td style="font-size: 12px;">
+                        ${line.validationDate ? `<div><i class="fa-solid fa-calendar-check text-green"></i> ${line.validationDate}</div>` : ''}
+                        ${line.financialComment ? `<div style="font-style: italic; font-size: 11px; color: var(--text-muted); margin-top: 2px;">"${line.financialComment}"</div>` : (!line.validationDate ? '-' : '')}
+                    </td>
+                    <td style="white-space: nowrap;">
+                        <button class="btn btn-secondary btn-sm" onclick="openPlanActivityModal('${act.id}')" title="Editar Actividad">
+                            <i class="fa-solid fa-pen-to-square"></i> Editar
+                        </button>
+                    </td>
+                </tr>
+            `);
+        });
+    });
+
+    if (rows.length === 0) {
+        tbody.innerHTML = `<tr><td colspan="8" class="text-center" style="padding: 20px;">No hay líneas de ahorro registradas para ${selectedResp === 'all' ? 'los responsables' : selectedResp}.</td></tr>`;
+        return;
+    }
+
+    tbody.innerHTML = rows.join('');
+}
+
+function renderPlanSavingsChartsDynamic(selectedResp, respMetrics, globalStats) {
+    if (typeof Chart === 'undefined') return;
+
+    const isDark = document.body.classList.contains('dark-theme');
+    const textColor = isDark ? '#f1f5f9' : '#334155';
+    const gridColor = isDark ? '#24324d' : '#e2e8f0';
+
+    const types = ['Hard', 'Soft', 'One Time', 'Inventory'];
+    const metas = [globalStats.metaHard, globalStats.metaSoft, globalStats.metaOneTime, globalStats.metaInventory];
+    const actuals = [globalStats.actualHard, globalStats.actualSoft, globalStats.actualOneTime, globalStats.actualInventory];
+
+    // Chart 1: Compare Meta vs Actual by Category
+    const ctxCompare = document.getElementById('chart-plan-savings-compare')?.getContext('2d');
+    if (ctxCompare) {
+        if (planCharts.compare) planCharts.compare.destroy();
+        planCharts.compare = new Chart(ctxCompare, {
+            type: 'bar',
+            data: {
+                labels: types,
+                datasets: [
+                    { label: 'Meta Esperada ($)', data: metas, backgroundColor: 'rgba(37, 99, 235, 0.4)', borderColor: '#2563eb', borderWidth: 1 },
+                    { label: 'Ahorro Real ($)', data: actuals, backgroundColor: '#10b981', borderWidth: 1 }
+                ]
+            },
+            options: {
+                responsive: true,
+                maintainAspectRatio: false,
+                plugins: { legend: { labels: { color: textColor } } },
+                scales: {
+                    x: { ticks: { color: textColor }, grid: { color: gridColor } },
+                    y: { ticks: { color: textColor }, grid: { color: gridColor } }
+                }
+            }
+        });
+    }
+
+    // Chart 2: Distribution by Savings Type
+    const ctxDist = document.getElementById('chart-plan-savings-dist')?.getContext('2d');
+    if (ctxDist) {
+        if (planCharts.dist) planCharts.dist.destroy();
+        planCharts.dist = new Chart(ctxDist, {
+            type: 'doughnut',
+            data: {
+                labels: types,
+                datasets: [{
+                    data: actuals,
+                    backgroundColor: ['#10b981', '#3b82f6', '#f59e0b', '#a855f7']
+                }]
+            },
+            options: {
+                responsive: true,
+                maintainAspectRatio: false,
+                plugins: { legend: { labels: { color: textColor } } }
+            }
+        });
+    }
+
+    // Chart 3: Compare Actual vs Meta per Responsable
+    const ctxTrend = document.getElementById('chart-plan-savings-trend')?.getContext('2d');
+    if (ctxTrend) {
+        if (planCharts.trend) planCharts.trend.destroy();
+
+        const labels = respMetrics.map(s => s.name);
+        const metaValues = respMetrics.map(s => s.targetTotal);
+        const actualValues = respMetrics.map(s => s.actualTotal);
+
+        planCharts.trend = new Chart(ctxTrend, {
+            type: 'bar',
+            data: {
+                labels: labels,
+                datasets: [
+                    { label: 'Meta Esperada Total ($)', data: metaValues, backgroundColor: 'rgba(59, 130, 246, 0.5)', borderColor: '#3b82f6', borderWidth: 1 },
+                    { label: 'Ahorro Real Total ($)', data: actualValues, backgroundColor: '#10b981', borderWidth: 1 }
+                ]
+            },
+            options: {
+                responsive: true,
+                maintainAspectRatio: false,
+                plugins: { legend: { labels: { color: textColor } } },
+                scales: {
+                    x: { ticks: { color: textColor }, grid: { color: gridColor } },
+                    y: { ticks: { color: textColor }, grid: { color: gridColor } }
+                }
+            }
+        });
+    }
+}
+
+function openEditMetaModal(respId = null) {
+    const modal = document.getElementById('modal-edit-meta');
+    const form = document.getElementById('form-edit-meta');
+    const titleEl = document.getElementById('modal-edit-meta-title');
+
+    form.reset();
+
+    let targetResp = null;
+    if (respId) {
+        targetResp = state.responsables.find(r => r.id === respId);
+    } else if (state.savingsSelectedResponsable && state.savingsSelectedResponsable !== 'all') {
+        targetResp = state.responsables.find(r => r.name.toLowerCase() === state.savingsSelectedResponsable.toLowerCase());
+    }
+
+    if (!targetResp && state.responsables.length > 0) {
+        targetResp = state.responsables[0];
+    }
+
+    if (targetResp) {
+        titleEl.innerText = `✏ Editar Meta de Ahorro: ${targetResp.name}`;
+        document.getElementById('edit-meta-resp-id').value = targetResp.id;
+        document.getElementById('edit-meta-resp-name').value = targetResp.name;
+        document.getElementById('edit-meta-resp-area').value = targetResp.area || 'General';
+        document.getElementById('edit-meta-hard').value = targetResp.targetHard || 0;
+        document.getElementById('edit-meta-soft').value = targetResp.targetSoft || 0;
+        document.getElementById('edit-meta-onetime').value = targetResp.targetOneTime || 0;
+        document.getElementById('edit-meta-inventory').value = targetResp.targetInventory || 0;
+        document.getElementById('edit-meta-total').value = targetResp.targetTotal || (targetResp.targetHard + targetResp.targetSoft + targetResp.targetOneTime + targetResp.targetInventory);
+    } else {
+        titleEl.innerText = `✏ Crear / Editar Meta de Ahorro`;
+        document.getElementById('edit-meta-resp-id').value = "";
+        document.getElementById('edit-meta-resp-name').value = "";
+        document.getElementById('edit-meta-resp-area').value = "";
+        document.getElementById('edit-meta-hard').value = 0;
+        document.getElementById('edit-meta-soft').value = 0;
+        document.getElementById('edit-meta-onetime').value = 0;
+        document.getElementById('edit-meta-inventory').value = 0;
+        document.getElementById('edit-meta-total').value = 0;
+    }
+
+    modal.classList.add('show');
+}
+
+function autoCalcEditMetaTotal() {
+    const hard = parseFloat(document.getElementById('edit-meta-hard').value) || 0;
+    const soft = parseFloat(document.getElementById('edit-meta-soft').value) || 0;
+    const onetime = parseFloat(document.getElementById('edit-meta-onetime').value) || 0;
+    const inventory = parseFloat(document.getElementById('edit-meta-inventory').value) || 0;
+    document.getElementById('edit-meta-total').value = hard + soft + onetime + inventory;
+}
+
+function openCatalogModal() {
+    const modal = document.getElementById('modal-responsables-catalog');
+    const tbody = document.getElementById('catalog-responsables-body');
+
+    if (tbody) {
+        tbody.innerHTML = state.responsables.map(r => `
+            <tr>
+                <td><strong>${r.name}</strong></td>
+                <td>${r.area || 'General'}</td>
+                <td>${formatCurrency(r.targetHard)}</td>
+                <td>${formatCurrency(r.targetSoft)}</td>
+                <td>${formatCurrency(r.targetOneTime)}</td>
+                <td>${formatCurrency(r.targetInventory)}</td>
+                <td><strong>${formatCurrency(r.targetTotal)}</strong></td>
+                <td style="white-space: nowrap;">
+                    <button class="btn btn-secondary btn-sm" onclick="document.getElementById('modal-responsables-catalog').classList.remove('show'); openEditMetaModal('${r.id}');">
+                        <i class="fa-solid fa-pen-to-square"></i>
+                    </button>
+                    <button class="btn btn-danger btn-sm" onclick="deleteResponsable('${r.id}')">
+                        <i class="fa-solid fa-trash"></i>
+                    </button>
+                </td>
+            </tr>
+        `).join('');
+    }
+
+    modal.classList.add('show');
+}
+
+function openRealSavingModal(savingId = null) {
+    const modal = document.getElementById('modal-real-saving');
+    const form = document.getElementById('form-real-saving');
+    const titleEl = document.getElementById('modal-real-saving-title');
+    const respSelect = document.getElementById('form-saving-resp');
+
+    form.reset();
+
+    if (respSelect) {
+        respSelect.innerHTML = state.responsables.map(r => `<option value="${r.name}">${r.name} (${r.area || 'General'})</option>`).join('');
+    }
+
+    if (savingId) {
+        const item = state.savingsRecords.find(s => s.id === savingId);
+        if (item) {
+            titleEl.innerText = "✏ Editar Ahorro Real";
+            document.getElementById('form-saving-id').value = item.id;
+            if (respSelect) respSelect.value = item.responsable;
+            document.getElementById('form-saving-type').value = item.savingsType;
+            document.getElementById('form-saving-description').value = item.description;
+            document.getElementById('form-saving-amount').value = item.amount;
+            document.getElementById('form-saving-date').value = item.date || new Date().toISOString().split('T')[0];
+            document.getElementById('form-saving-evidence').value = item.evidence || '';
+            document.getElementById('form-saving-comments').value = item.comments || '';
+        }
+    } else {
+        titleEl.innerText = "💵 Registrar Ahorro Real";
+        document.getElementById('form-saving-id').value = "";
+        if (state.savingsSelectedResponsable && state.savingsSelectedResponsable !== 'all' && respSelect) {
+            respSelect.value = state.savingsSelectedResponsable;
+        }
+        document.getElementById('form-saving-date').value = new Date().toISOString().split('T')[0];
+    }
+
+    modal.classList.add('show');
+}
+
+function deleteResponsable(respId) {
+    const resp = state.responsables.find(r => r.id === respId);
+    if (!resp) return;
+
+    if (confirm(`¿Está seguro de eliminar a "${resp.name}" del catálogo de responsables?`)) {
+        state.responsables = state.responsables.filter(r => r.id !== respId);
+        saveResponsablesToStorage();
+        if ((state.savingsSelectedResponsable || '').toLowerCase() === resp.name.toLowerCase()) {
+            state.savingsSelectedResponsable = 'all';
+        }
+        const catalogModal = document.getElementById('modal-responsables-catalog');
+        if (catalogModal && catalogModal.classList.contains('show')) {
+            openCatalogModal();
+        }
+        renderPlanActividadesView();
+    }
+}
+
+function deleteRealSaving(savingId) {
+    if (confirm("¿Está seguro de eliminar este registro de ahorro real?")) {
+        state.savingsRecords = state.savingsRecords.filter(s => s.id !== savingId);
+        saveSavingsRecordsToStorage();
+        renderPlanActividadesView();
+    }
+}
+
+function setupSavingsEvents() {
+    const personSelector = document.getElementById('savings-person-selector');
+    if (personSelector) {
+        personSelector.addEventListener('change', (e) => {
+            state.savingsSelectedResponsable = e.target.value;
+            renderPlanActividadesView();
+        });
+    }
+
+    const sortSelect = document.getElementById('sort-responsables-by');
+    if (sortSelect) {
+        sortSelect.addEventListener('change', (e) => {
+            state.savingsSortBy = e.target.value;
+            renderPlanActividadesView();
+        });
+    }
+
+    const btnEditCurrentMeta = document.getElementById('btn-edit-current-meta');
+    if (btnEditCurrentMeta) {
+        btnEditCurrentMeta.addEventListener('click', () => openEditMetaModal());
+    }
+
+    const btnManageResp = document.getElementById('btn-manage-responsables');
+    if (btnManageResp) {
+        btnManageResp.addEventListener('click', () => openCatalogModal());
+    }
+
+    const btnNewRealSaving = document.getElementById('btn-new-real-saving');
+    if (btnNewRealSaving) {
+        btnNewRealSaving.addEventListener('click', () => openRealSavingModal());
+    }
+
+    const btnAddRealSavingTable = document.getElementById('btn-add-real-saving-table');
+    if (btnAddRealSavingTable) {
+        btnAddRealSavingTable.addEventListener('click', () => openRealSavingModal());
+    }
+
+    const btnAddNewCatalog = document.getElementById('btn-add-new-responsable-catalog');
+    if (btnAddNewCatalog) {
+        btnAddNewCatalog.addEventListener('click', () => {
+            document.getElementById('modal-responsables-catalog').classList.remove('show');
+            openEditMetaModal(null);
+        });
+    }
+
+    const btnCloseEditMeta = document.getElementById('btn-close-edit-meta-modal');
+    if (btnCloseEditMeta) {
+        btnCloseEditMeta.addEventListener('click', () => document.getElementById('modal-edit-meta').classList.remove('show'));
+    }
+    const btnCancelEditMeta = document.getElementById('btn-cancel-edit-meta-modal');
+    if (btnCancelEditMeta) {
+        btnCancelEditMeta.addEventListener('click', () => document.getElementById('modal-edit-meta').classList.remove('show'));
+    }
+
+    const btnCloseCatalog = document.getElementById('btn-close-catalog-modal');
+    if (btnCloseCatalog) {
+        btnCloseCatalog.addEventListener('click', () => document.getElementById('modal-responsables-catalog').classList.remove('show'));
+    }
+    const btnCloseCatalogFooter = document.getElementById('btn-close-catalog-modal-footer');
+    if (btnCloseCatalogFooter) {
+        btnCloseCatalogFooter.addEventListener('click', () => document.getElementById('modal-responsables-catalog').classList.remove('show'));
+    }
+
+    const btnCloseRealSaving = document.getElementById('btn-close-real-saving-modal');
+    if (btnCloseRealSaving) {
+        btnCloseRealSaving.addEventListener('click', () => document.getElementById('modal-real-saving').classList.remove('show'));
+    }
+    const btnCancelRealSaving = document.getElementById('btn-cancel-real-saving-modal');
+    if (btnCancelRealSaving) {
+        btnCancelRealSaving.addEventListener('click', () => document.getElementById('modal-real-saving').classList.remove('show'));
+    }
+
+    ['edit-meta-hard', 'edit-meta-soft', 'edit-meta-onetime', 'edit-meta-inventory'].forEach(id => {
+        const el = document.getElementById(id);
+        if (el) el.addEventListener('input', autoCalcEditMetaTotal);
+    });
+
+    const btnRecalculate = document.getElementById('btn-recalculate-metrics');
+    if (btnRecalculate) {
+        btnRecalculate.addEventListener('click', () => runRecalculateMetricsAndShowReport());
+    }
+
+    const btnCloseAuditModal = document.getElementById('btn-close-audit-report-modal');
+    if (btnCloseAuditModal) {
+        btnCloseAuditModal.addEventListener('click', () => document.getElementById('modal-audit-report').classList.remove('show'));
+    }
+
+    const btnCloseAuditFooter = document.getElementById('btn-close-audit-report-footer');
+    if (btnCloseAuditFooter) {
+        btnCloseAuditFooter.addEventListener('click', () => document.getElementById('modal-audit-report').classList.remove('show'));
+    }
+
+    const formEditMeta = document.getElementById('form-edit-meta');
+    if (formEditMeta) {
+        formEditMeta.addEventListener('submit', (e) => {
+            e.preventDefault();
+            const respId = document.getElementById('edit-meta-resp-id').value;
+            const name = document.getElementById('edit-meta-resp-name').value.trim();
+            const area = document.getElementById('edit-meta-resp-area').value.trim();
+            const hard = parseFloat(document.getElementById('edit-meta-hard').value) || 0;
+            const soft = parseFloat(document.getElementById('edit-meta-soft').value) || 0;
+            const onetime = parseFloat(document.getElementById('edit-meta-onetime').value) || 0;
+            const inventory = parseFloat(document.getElementById('edit-meta-inventory').value) || 0;
+            const total = hard + soft + onetime + inventory;
+
+            if (respId) {
+                const item = state.responsables.find(r => r.id === respId);
+                if (item) {
+                    item.name = name;
+                    item.area = area;
+                    item.targetHard = hard;
+                    item.targetSoft = soft;
+                    item.targetOneTime = onetime;
+                    item.targetInventory = inventory;
+                    item.targetTotal = total;
+                }
+            } else {
+                const newResp = {
+                    id: "resp-" + Math.floor(100 + Math.random() * 900),
+                    name,
+                    area,
+                    targetHard: hard,
+                    targetSoft: soft,
+                    targetOneTime: onetime,
+                    targetInventory: inventory,
+                    targetTotal: total
+                };
+                state.responsables.push(newResp);
+            }
+
+            saveResponsablesToStorage();
+            document.getElementById('modal-edit-meta').classList.remove('show');
+            renderPlanActividadesView();
+        });
+    }
+
+    const formRealSaving = document.getElementById('form-real-saving');
+    if (formRealSaving) {
+        formRealSaving.addEventListener('submit', (e) => {
+            e.preventDefault();
+            const editId = document.getElementById('form-saving-id').value;
+            const responsable = document.getElementById('form-saving-resp').value;
+            const type = document.getElementById('form-saving-type').value;
+            const desc = document.getElementById('form-saving-description').value.trim();
+            const amount = parseFloat(document.getElementById('form-saving-amount').value) || 0;
+            const date = document.getElementById('form-saving-date').value;
+            const evidence = document.getElementById('form-saving-evidence').value.trim();
+            const comments = document.getElementById('form-saving-comments').value.trim();
+
+            const item = {
+                id: editId || "SAV-" + Math.floor(100 + Math.random() * 900),
+                responsable,
+                savingsType: type,
+                description: desc,
+                amount,
+                date,
+                evidence: evidence || 'Sin evidencia',
+                comments
+            };
+
+            if (editId) {
+                const idx = state.savingsRecords.findIndex(s => s.id === editId);
+                if (idx >= 0) state.savingsRecords[idx] = item;
+            } else {
+                state.savingsRecords.unshift(item);
+            }
+
+            saveSavingsRecordsToStorage();
+            document.getElementById('modal-real-saving').classList.remove('show');
+            renderPlanActividadesView();
+        });
+    }
+}
+
+function renderPlanDashboard(activities) {
+    const totalAct = activities.length;
+    const closedAct = activities.filter(a => a.status === 'Completado').length;
+    const openAct = totalAct - closedAct;
+    const totalMin = activities.reduce((sum, a) => sum + parseInt(a.minutes || 0), 0);
+    const totalHours = (totalMin / 60).toFixed(1);
+
+    const globalStats = getGlobalSavingsStats();
+    const targetSavings = globalStats.metaTotal;
+    const actualSavings = globalStats.actualTotal;
+    const compliancePct = globalStats.complianceStr;
+
+    let totalEvidences = 0;
+    activities.forEach(a => { if (a.attachments) totalEvidences += a.attachments.length; });
+
+    const totalActEl = document.getElementById('dash-plan-total-act');
+    if (totalActEl) totalActEl.innerText = totalAct;
+
+    const openActEl = document.getElementById('dash-plan-open-act');
+    if (openActEl) openActEl.innerText = openAct;
+
+    const closedActEl = document.getElementById('dash-plan-closed-act');
+    if (closedActEl) closedActEl.innerText = closedAct;
+
+    const totalMinEl = document.getElementById('dash-plan-total-minutes');
+    if (totalMinEl) totalMinEl.innerText = `${totalMin} min`;
+
+    const totalHoursEl = document.getElementById('dash-plan-total-hours');
+    if (totalHoursEl) totalHoursEl.innerText = `${totalHours} horas equivalentes`;
+
+    const targetSavingsEl = document.getElementById('dash-plan-target-savings');
+    if (targetSavingsEl) targetSavingsEl.innerText = formatCurrency(targetSavings);
+
+    const actualSavingsEl = document.getElementById('dash-plan-actual-savings');
+    if (actualSavingsEl) actualSavingsEl.innerText = formatCurrency(actualSavings);
+
+    const savingsPctEl = document.getElementById('dash-plan-savings-pct');
+    if (savingsPctEl) savingsPctEl.innerText = compliancePct;
+
+    const totalEvidencesEl = document.getElementById('dash-plan-total-evidences');
+    if (totalEvidencesEl) totalEvidencesEl.innerText = totalEvidences;
+
+    renderPlanDashboardCharts(activities);
+}
+
+function renderPlanDashboardCharts(activities) {
+    if (typeof Chart === 'undefined') return;
+
+    const isDark = document.body.classList.contains('dark-theme');
+    const textColor = isDark ? '#f1f5f9' : '#334155';
+    const gridColor = isDark ? '#24324d' : '#e2e8f0';
+
+    const statusCounts = { 'Pendiente': 0, 'En Proceso': 0, 'En Riesgo': 0, 'Bloqueado': 0, 'Completado': 0 };
+    activities.forEach(a => statusCounts[a.status] = (statusCounts[a.status] || 0) + 1);
+    const ctxStatus = document.getElementById('chart-plan-status')?.getContext('2d');
+    if (ctxStatus) {
+        if (planCharts.dashStatus) planCharts.dashStatus.destroy();
+        planCharts.dashStatus = new Chart(ctxStatus, {
+            type: 'pie',
+            data: {
+                labels: Object.keys(statusCounts),
+                datasets: [{
+                    data: Object.values(statusCounts),
+                    backgroundColor: ['#64748b', '#3b82f6', '#f59e0b', '#ef4444', '#10b981']
+                }]
+            },
+            options: {
+                responsive: true,
+                maintainAspectRatio: false,
+                plugins: { legend: { labels: { color: textColor } } }
+            }
+        });
+    }
+
+    const prioCounts = { 'Alta': 0, 'Media': 0, 'Baja': 0 };
+    activities.forEach(a => prioCounts[a.priority] = (prioCounts[a.priority] || 0) + 1);
+    const ctxPrio = document.getElementById('chart-plan-priority')?.getContext('2d');
+    if (ctxPrio) {
+        if (planCharts.dashPrio) planCharts.dashPrio.destroy();
+        planCharts.dashPrio = new Chart(ctxPrio, {
+            type: 'bar',
+            data: {
+                labels: Object.keys(prioCounts),
+                datasets: [{
+                    label: 'Actividades',
+                    data: Object.values(prioCounts),
+                    backgroundColor: ['#ef4444', '#f59e0b', '#10b981']
+                }]
+            },
+            options: {
+                responsive: true,
+                maintainAspectRatio: false,
+                plugins: { legend: { display: false } },
+                scales: {
+                    x: { ticks: { color: textColor }, grid: { color: gridColor } },
+                    y: { ticks: { color: textColor }, grid: { color: gridColor } }
+                }
+            }
+        });
+    }
+
+    const userMinutes = {};
+    activities.forEach(a => userMinutes[a.userName] = (userMinutes[a.userName] || 0) + parseInt(a.minutes || 0));
+    const ctxUserMin = document.getElementById('chart-plan-user-minutes')?.getContext('2d');
+    if (ctxUserMin) {
+        if (planCharts.dashUserMin) planCharts.dashUserMin.destroy();
+        planCharts.dashUserMin = new Chart(ctxUserMin, {
+            type: 'bar',
+            data: {
+                labels: Object.keys(userMinutes),
+                datasets: [{
+                    label: 'Minutos invertidos',
+                    data: Object.values(userMinutes),
+                    backgroundColor: '#7c3aed'
+                }]
+            },
+            options: {
+                indexAxis: 'y',
+                responsive: true,
+                maintainAspectRatio: false,
+                plugins: { legend: { display: false } },
+                scales: {
+                    x: { ticks: { color: textColor }, grid: { color: gridColor } },
+                    y: { ticks: { color: textColor }, grid: { color: gridColor } }
+                }
+            }
+        });
+    }
+}
+
+function renderPlanEvidencias(activities) {
+    const tbody = document.getElementById('plan-evidencias-table-body');
+    if (!tbody) return;
+
+    const allEvidences = [];
+    activities.forEach(act => {
+        if (act.attachments && act.attachments.length > 0) {
+            act.attachments.forEach(att => {
+                allEvidences.push({
+                    ...att,
+                    activityTitle: act.activity,
+                    activityId: act.id
+                });
+            });
+        }
+    });
+
+    if (allEvidences.length === 0) {
+        tbody.innerHTML = `<tr><td colspan="6" class="text-center" style="padding: 30px;">No hay evidencias cargadas en las actividades.</td></tr>`;
+        return;
+    }
+
+    tbody.innerHTML = allEvidences.map(att => {
+        let iconClass = 'fa-file';
+        let iconColor = 'text-blue';
+        if (att.type === 'pdf') { iconClass = 'fa-file-pdf'; iconColor = 'text-red'; }
+        else if (att.type === 'excel') { iconClass = 'fa-file-excel'; iconColor = 'text-green'; }
+        else if (att.type === 'word') { iconClass = 'fa-file-word'; iconColor = 'text-blue'; }
+        else if (att.type === 'powerpoint') { iconClass = 'fa-file-powerpoint'; iconColor = 'text-orange'; }
+        else if (att.type === 'image') { iconClass = 'fa-file-image'; iconColor = 'text-purple'; }
+        else if (att.type === 'video') { iconClass = 'fa-file-video'; iconColor = 'text-yellow'; }
+
+        return `
+            <tr>
+                <td><i class="fa-solid ${iconClass} ${iconColor}" style="font-size: 22px;"></i></td>
+                <td><strong>${att.name}</strong> <span style="font-size: 11px; color: var(--text-muted); display: block;">${att.size || 'Evidencia'}</span></td>
+                <td style="max-width: 280px; font-size: 13px;">${att.activityTitle}</td>
+                <td style="white-space: nowrap; font-size: 13px;">${att.date || '-'}</td>
+                <td><strong>${att.userName || 'Usuario'}</strong></td>
+                <td style="white-space: nowrap;">
+                    <button class="btn btn-secondary btn-sm" onclick="previewEvidenceFile('${att.name}', '${att.type}', '${att.dataUrl || ''}')">
+                        <i class="fa-solid fa-eye"></i> Ver
+                    </button>
+                    <button class="btn btn-outline btn-sm" onclick="alert('Descargando archivo: ${att.name}')">
+                        <i class="fa-solid fa-download"></i> Descargar
+                    </button>
+                    <button class="btn btn-danger btn-sm" onclick="confirmDeleteEvidence('${att.activityId}', '${att.name}')">
+                        <i class="fa-solid fa-trash"></i> Eliminar
+                    </button>
+                </td>
+            </tr>
+        `;
+    }).join('');
+}
+
+let currentModalSavingsLines = [];
+
+function renderModalSavingsLines() {
+    const container = document.getElementById('form-act-savings-lines-list');
+    const targetEl = document.getElementById('modal-savings-total-target');
+    const actualEl = document.getElementById('modal-savings-total-actual');
+    const complianceEl = document.getElementById('modal-savings-total-compliance');
+
+    if (!container) return;
+
+    if (currentModalSavingsLines.length === 0) {
+        container.innerHTML = `
+            <div style="text-align: center; padding: 16px; border: 1px dashed var(--border-color); border-radius: 8px; color: var(--text-muted); font-size: 13px;">
+                No hay líneas de ahorro agregadas. Haz clic en <strong>"+ Agregar Línea de Ahorro"</strong> para registrar metas y ahorros.
+            </div>
+        `;
+        if (targetEl) targetEl.innerText = formatCurrency(0);
+        if (actualEl) actualEl.innerText = formatCurrency(0);
+        if (complianceEl) complianceEl.innerText = "0.0%";
+        return;
+    }
+
+    let totalTarget = 0;
+    let totalActual = 0;
+
+    container.innerHTML = currentModalSavingsLines.map((line, index) => {
+        const targetVal = parseFloat(line.targetSavings || 0);
+        const actualVal = parseFloat(line.actualSavings || 0);
+        totalTarget += targetVal;
+        totalActual += actualVal;
+
+        const lineComp = formatCategoryCompliance(actualVal, targetVal);
+
+        return `
+            <div class="savings-line-card" data-index="${index}">
+                <div style="display: flex; justify-content: space-between; align-items: center;">
+                    <span style="font-size: 12px; font-weight: 700; color: var(--primary-light);">
+                        <i class="fa-solid fa-coins text-yellow"></i> Línea #${index + 1}
+                    </span>
+                    <div style="display: flex; align-items: center; gap: 8px;">
+                        <span style="font-size: 11px; font-weight: 600; color: var(--text-muted);">Cumplimiento: <strong style="color: var(--purple-sem-text);">${lineComp.text}</strong></span>
+                        <button type="button" class="btn btn-icon-only btn-danger btn-sm" onclick="removeSavingsLineFromModal(${index})" title="Eliminar Línea">
+                            <i class="fa-solid fa-trash"></i>
+                        </button>
+                    </div>
+                </div>
+
+                <div class="form-grid-3 margin-top-xs" style="margin-bottom: 6px;">
+                    <div class="form-group mb-0">
+                        <label>Tipo de Ahorro *</label>
+                        <select onchange="updateSavingsLineFromModal(${index}, 'savingsType', this.value)" required>
+                            <option value="Hard" ${line.savingsType === 'Hard' ? 'selected' : ''}>Hard Savings (Duro)</option>
+                            <option value="Soft" ${line.savingsType === 'Soft' ? 'selected' : ''}>Soft Savings (Blando)</option>
+                            <option value="One Time" ${line.savingsType === 'One Time' ? 'selected' : ''}>One Time Savings (Única Ocasión)</option>
+                            <option value="Inventory" ${line.savingsType === 'Inventory' ? 'selected' : ''}>Inventory Reduction (Inventario)</option>
+                        </select>
+                    </div>
+                    <div class="form-group mb-0">
+                        <label>Meta Esperada ($) *</label>
+                        <input type="number" min="0" step="100" value="${targetVal}" oninput="updateSavingsLineFromModal(${index}, 'targetSavings', parseFloat(this.value) || 0)" required placeholder="Ej. 50000">
+                    </div>
+                    <div class="form-group mb-0">
+                        <label>Ahorro Real Validado ($) *</label>
+                        <input type="number" min="0" step="100" value="${actualVal}" oninput="updateSavingsLineFromModal(${index}, 'actualSavings', parseFloat(this.value) || 0)" required placeholder="Ej. 40000">
+                    </div>
+                </div>
+
+                <div class="form-grid-2 margin-top-xs" style="margin-bottom: 0;">
+                    <div class="form-group mb-0">
+                        <label>Fecha de Validación</label>
+                        <input type="date" value="${line.validationDate || ''}" onchange="updateSavingsLineFromModal(${index}, 'validationDate', this.value)">
+                    </div>
+                    <div class="form-group mb-0">
+                        <label>Comentario / Validación Financiera</label>
+                        <input type="text" value="${line.financialComment || ''}" oninput="updateSavingsLineFromModal(${index}, 'financialComment', this.value)" placeholder="Ej. Validación de finanzas por reducción de scrap en estación 4.">
+                    </div>
+                </div>
+            </div>
+        `;
+    }).join('');
+
+    const compTotalObj = formatCategoryCompliance(totalActual, totalTarget);
+
+    if (targetEl) targetEl.innerText = formatCurrency(totalTarget);
+    if (actualEl) actualEl.innerText = formatCurrency(totalActual);
+    if (complianceEl) complianceEl.innerText = compTotalObj.text;
+}
+
+function updateSavingsLineFromModal(index, field, value) {
+    if (currentModalSavingsLines[index]) {
+        currentModalSavingsLines[index][field] = value;
+        if (field === 'targetSavings' || field === 'actualSavings') {
+            let totalTarget = 0;
+            let totalActual = 0;
+            currentModalSavingsLines.forEach(line => {
+                totalTarget += parseFloat(line.targetSavings || 0);
+                totalActual += parseFloat(line.actualSavings || 0);
+            });
+            const compTotalObj = formatCategoryCompliance(totalActual, totalTarget);
+            const targetEl = document.getElementById('modal-savings-total-target');
+            const actualEl = document.getElementById('modal-savings-total-actual');
+            const complianceEl = document.getElementById('modal-savings-total-compliance');
+            if (targetEl) targetEl.innerText = formatCurrency(totalTarget);
+            if (actualEl) actualEl.innerText = formatCurrency(totalActual);
+            if (complianceEl) complianceEl.innerText = compTotalObj.text;
+        }
+    }
+}
+
+function addSavingsLineToModal(lineData = null) {
+    const newLine = lineData || {
+        id: 'sl-' + Date.now() + '-' + Math.floor(Math.random() * 1000),
+        savingsType: 'Hard',
+        targetSavings: 0,
+        actualSavings: 0,
+        validationDate: '',
+        financialComment: ''
+    };
+    currentModalSavingsLines.push(newLine);
+    renderModalSavingsLines();
+}
+
+function removeSavingsLineFromModal(index) {
+    currentModalSavingsLines.splice(index, 1);
+    renderModalSavingsLines();
+}
+
+function openPlanActivityModal(editId = null) {
+    const modal = document.getElementById('activity-modal');
+    const form = document.getElementById('activity-form');
+    const titleEl = document.getElementById('modal-activity-title');
+
+    form.reset();
+    document.getElementById('form-act-attachment-previews').innerHTML = '';
+
+    const hasSavingsCheck = document.getElementById('form-act-has-savings-check');
+    const savingsContainer = document.getElementById('form-act-savings-container');
+
+    if (editId) {
+        const item = state.planActivities.find(b => b.id === editId);
+        if (item) {
+            titleEl.innerText = "Editar Actividad del Plan";
+            document.getElementById('form-act-id').value = item.id;
+            document.getElementById('form-act-title').value = item.activity;
+            document.getElementById('form-act-user').value = item.userName;
+            document.getElementById('form-act-target-date').value = item.targetDate || '';
+            document.getElementById('form-act-close-date').value = item.closeDate || '';
+            document.getElementById('form-act-status').value = item.status;
+            document.getElementById('form-act-priority').value = item.priority;
+            document.getElementById('form-act-minutes').value = item.minutes || 60;
+            document.getElementById('form-act-progress').value = item.progress || 0;
+            document.getElementById('form-act-comments').value = item.comments || '';
+            document.getElementById('form-act-next-action').value = item.nextAction || '';
+
+            const itemHasSavings = (item.hasSavings === 'si' || item.hasSavings === true);
+            if (hasSavingsCheck) hasSavingsCheck.checked = itemHasSavings;
+
+            if (itemHasSavings) {
+                if (savingsContainer) savingsContainer.style.display = 'block';
+                if (Array.isArray(item.savingsLines) && item.savingsLines.length > 0) {
+                    currentModalSavingsLines = JSON.parse(JSON.stringify(item.savingsLines));
+                } else if ((item.targetSavings || 0) > 0 || (item.actualSavings || 0) > 0) {
+                    currentModalSavingsLines = [{
+                        id: 'sl-1',
+                        savingsType: item.savingsType || 'Hard',
+                        targetSavings: item.targetSavings || 0,
+                        actualSavings: item.actualSavings || 0,
+                        validationDate: item.validationDate || '',
+                        financialComment: item.financialComment || ''
+                    }];
+                } else {
+                    currentModalSavingsLines = [{
+                        id: 'sl-1',
+                        savingsType: 'Hard',
+                        targetSavings: 0,
+                        actualSavings: 0,
+                        validationDate: '',
+                        financialComment: ''
+                    }];
+                }
+            } else {
+                if (savingsContainer) savingsContainer.style.display = 'none';
+                currentModalSavingsLines = [];
+            }
+
+            if (item.attachments && item.attachments.length > 0) {
+                const prevContainer = document.getElementById('form-act-attachment-previews');
+                prevContainer.innerHTML = item.attachments.map(att => `
+                    <div class="attachment-chip">
+                        <i class="fa-solid fa-paperclip"></i>
+                        <span>${att.name}</span>
+                    </div>
+                `).join('');
+            }
+        }
+    } else {
+        titleEl.innerText = "Registrar Actividad en el Plan";
+        document.getElementById('form-act-id').value = "";
+        const todayStr = new Date().toISOString().split('T')[0];
+        document.getElementById('form-act-target-date').value = todayStr;
+        document.getElementById('form-act-user').value = "Carlos Gómez";
+        document.getElementById('form-act-minutes').value = 120;
+        document.getElementById('form-act-progress').value = 0;
+
+        if (hasSavingsCheck) hasSavingsCheck.checked = false;
+        if (savingsContainer) savingsContainer.style.display = 'none';
+        currentModalSavingsLines = [];
+    }
+
+    renderModalSavingsLines();
+    modal.classList.add('show');
+}
+
+function previewEvidenceFile(name, type, dataUrl) {
+    const modal = document.getElementById('evidence-preview-modal');
+    const titleEl = document.getElementById('evidence-preview-title');
+    const bodyEl = document.getElementById('evidence-preview-body');
+
+    titleEl.innerText = `Evidencia: ${name}`;
+
+    if (type === 'image' && dataUrl) {
+        bodyEl.innerHTML = `<img src="${dataUrl}" alt="${name}" style="max-width: 100%; max-height: 450px; border-radius: 8px; box-shadow: var(--shadow-md);">`;
+    } else if (type === 'video' && dataUrl) {
+        bodyEl.innerHTML = `
+            <video controls autoplay style="max-width: 100%; max-height: 450px; border-radius: 8px; box-shadow: var(--shadow-md);">
+                <source src="${dataUrl}" type="video/mp4">
+                Tu navegador no soporta la reproducción de video.
+            </video>
+        `;
+    } else {
+        let iconClass = 'fa-file-pdf';
+        let iconColor = 'text-red';
+        if (type === 'excel') { iconClass = 'fa-file-excel'; iconColor = 'text-green'; }
+        if (type === 'word') { iconClass = 'fa-file-word'; iconColor = 'text-blue'; }
+        if (type === 'powerpoint') { iconClass = 'fa-file-powerpoint'; iconColor = 'text-orange'; }
+        if (type === 'video') { iconClass = 'fa-file-video'; iconColor = 'text-yellow'; }
+
+        bodyEl.innerHTML = `
+            <div style="padding: 30px;">
+                <i class="fa-solid ${iconClass} ${iconColor}" style="font-size: 64px; margin-bottom: 16px;"></i>
+                <h4 style="font-size: 18px; margin-bottom: 8px;">${name}</h4>
+                <p style="color: var(--text-muted);">Documento de evidencia adjunto al plan de actividades.</p>
+                <div class="margin-top-md" style="display: flex; gap: 10px; justify-content: center;">
+                    <button class="btn btn-primary" onclick="alert('Descargando archivo evidencia: ${name}')">
+                        <i class="fa-solid fa-download"></i> Descargar Archivo
+                    </button>
+                    <button class="btn btn-secondary" onclick="document.getElementById('evidence-preview-modal').classList.remove('show')">
+                        Cerrar
+                    </button>
+                </div>
+            </div>
+        `;
+    }
+
+    modal.classList.add('show');
+}
+
+function confirmDeletePlanActivity(id) {
+    if (confirm("¿Está seguro de que desea eliminar esta actividad del plan?")) {
+        deletePlanActivityFromPersistence(id).then(() => {
+            renderPlanActividadesView();
+        });
+    }
+}
+
+function confirmDeleteEvidence(activityId, fileName) {
+    if (confirm(`¿Eliminar la evidencia "${fileName}"?`)) {
+        const act = state.planActivities.find(a => a.id === activityId);
+        if (act && act.attachments) {
+            act.attachments = act.attachments.filter(att => att.name !== fileName);
+            savePlanActivityToPersistence(act).then(() => {
+                renderPlanActividadesView();
+            });
+        }
+    }
+}
+
+function exportPlanToExcel() {
+    if (typeof XLSX === 'undefined') {
+        alert("La librería SheetJS no está cargada.");
+        return;
+    }
+
+    const filtered = getFilteredPlanActivities();
+    const exportData = filtered.map(b => {
+        const hasSavings = (b.hasSavings === 'si' || b.hasSavings === true);
+        const lines = getActivitySavingsLines(b);
+        let targetTotal = 0;
+        let actualTotal = 0;
+        lines.forEach(l => {
+            targetTotal += parseFloat(l.targetSavings || 0);
+            actualTotal += parseFloat(l.actualSavings || 0);
+        });
+
+        return {
+            "ID": b.id,
+            "Nombre Actividad": b.activity,
+            "Responsable": b.userName,
+            "Fecha Compromiso": b.targetDate,
+            "Fecha Cierre": b.closeDate || "",
+            "Status": b.status,
+            "Prioridad": b.priority,
+            "Tiempo (Minutos)": b.minutes,
+            "% Avance": (b.progress || 0) + "%",
+            "Genera Ahorro": hasSavings ? "Sí" : "No",
+            "Tipo Ahorro": hasSavings ? (b.savingsType || "Hard") : "-",
+            "Meta Esperada Total ($)": hasSavings ? targetTotal : 0,
+            "Ahorro Real Validado Total ($)": hasSavings ? actualTotal : 0,
+            "% Cumplimiento": hasSavings ? formatCategoryCompliance(actualTotal, targetTotal).text : "N/A",
+            "Cantidad de Líneas de Ahorro": lines.length,
+            "Comentarios": b.comments || "",
+            "Próxima Acción": b.nextAction || "",
+            "Evidencias": b.attachments ? b.attachments.map(a => a.name).join(', ') : ""
+        };
+    });
+
+    const ws = XLSX.utils.json_to_sheet(exportData);
+    const wb = XLSX.utils.book_new();
+    XLSX.utils.book_append_sheet(wb, ws, "Plan_Actividades");
+    XLSX.writeFile(wb, `Plan_Actividades_Lean_${new Date().toISOString().split('T')[0]}.xlsx`);
+}
+
 // 15. Document Event Bindings Setup
 async function inicializarAplicacion() {
     applyTheme();
+    loadResponsablesFromStorage();
+    loadSavingsRecordsFromStorage();
     await fetchProjectsFromSupabase();
+    await fetchPlanActivitiesFromSupabase();
     setupSupabaseRealtime();
+    setupSavingsEvents();
+    updateTeamUsersDatalist();
     switchView('dashboard');
     
     document.querySelectorAll('.nav-link').forEach(link => {
@@ -1758,17 +3773,245 @@ async function inicializarAplicacion() {
         applyTheme();
         
         if (state.currentView === 'dashboard') {
-            renderDashboardCharts();
+            renderDashboard();
         } else if (state.currentView === 'reports') {
             renderReportsCharts();
+        } else if (state.currentView === 'plan-actividades') {
+            renderPlanActividadesView();
         }
     });
     
-    document.getElementById('global-search').addEventListener('input', () => {
+    document.getElementById('global-search').addEventListener('input', (e) => {
         if (state.currentView === 'projects') {
             renderProjectsTable();
+        } else if (state.currentView === 'plan-actividades') {
+            state.planFilters.search = e.target.value;
+            const searchInput = document.getElementById('plan-filter-search');
+            if (searchInput) searchInput.value = e.target.value;
+            renderPlanActividadesView();
         }
     });
+
+    // ==========================================
+    // PLAN DE ACTIVIDADES EVENT BINDINGS
+    // ==========================================
+
+    const btnNewActTop = document.getElementById('btn-new-activity-top');
+    if (btnNewActTop) btnNewActTop.addEventListener('click', () => openPlanActivityModal());
+
+    const btnNewActPlan = document.getElementById('btn-new-activity-plan');
+    if (btnNewActPlan) btnNewActPlan.addEventListener('click', () => openPlanActivityModal());
+
+    const btnCloseActModal = document.getElementById('btn-close-activity-modal');
+    if (btnCloseActModal) btnCloseActModal.addEventListener('click', () => {
+        document.getElementById('activity-modal').classList.remove('show');
+    });
+
+    const btnCancelActModal = document.getElementById('btn-cancel-activity-modal');
+    if (btnCancelActModal) btnCancelActModal.addEventListener('click', () => {
+        document.getElementById('activity-modal').classList.remove('show');
+    });
+
+    const btnCloseEvModal = document.getElementById('btn-close-evidence-modal');
+    if (btnCloseEvModal) btnCloseEvModal.addEventListener('click', () => {
+        document.getElementById('evidence-preview-modal').classList.remove('show');
+    });
+
+    // Plan Subtabs switching
+    document.querySelectorAll('#view-plan-actividades .subtab-btn').forEach(btn => {
+        btn.addEventListener('click', (e) => {
+            const subtab = e.currentTarget.getAttribute('data-subtab');
+            switchPlanSubtab(subtab);
+        });
+    });
+
+    // Plan Filter Controls
+    const planFilterSearch = document.getElementById('plan-filter-search');
+    if (planFilterSearch) {
+        planFilterSearch.addEventListener('input', (e) => {
+            state.planFilters.search = e.target.value;
+            renderPlanActividadesView();
+        });
+    }
+
+    const planFilterUser = document.getElementById('plan-filter-user');
+    if (planFilterUser) {
+        planFilterUser.addEventListener('change', (e) => {
+            state.planFilters.user = e.target.value;
+            renderPlanActividadesView();
+        });
+    }
+
+    const planFilterStatus = document.getElementById('plan-filter-status');
+    if (planFilterStatus) {
+        planFilterStatus.addEventListener('change', (e) => {
+            state.planFilters.status = e.target.value;
+            renderPlanActividadesView();
+        });
+    }
+
+    const planFilterPriority = document.getElementById('plan-filter-priority');
+    if (planFilterPriority) {
+        planFilterPriority.addEventListener('change', (e) => {
+            state.planFilters.priority = e.target.value;
+            renderPlanActividadesView();
+        });
+    }
+
+    const planFilterSavingsType = document.getElementById('plan-filter-savings-type');
+    if (planFilterSavingsType) {
+        planFilterSavingsType.addEventListener('change', (e) => {
+            state.planFilters.savingsType = e.target.value;
+            renderPlanActividadesView();
+        });
+    }
+
+    const btnClearPlanFilters = document.getElementById('btn-clear-plan-filters');
+    if (btnClearPlanFilters) {
+        btnClearPlanFilters.addEventListener('click', () => {
+            state.planFilters = { search: '', user: '', status: '', priority: '', savingsType: '' };
+            if (planFilterSearch) planFilterSearch.value = "";
+            if (planFilterUser) planFilterUser.value = "";
+            if (planFilterStatus) planFilterStatus.value = "";
+            if (planFilterPriority) planFilterPriority.value = "";
+            if (planFilterSavingsType) planFilterSavingsType.value = "";
+            renderPlanActividadesView();
+        });
+    }
+
+    const btnExportPlanExcel = document.getElementById('btn-export-plan-excel');
+    if (btnExportPlanExcel) btnExportPlanExcel.addEventListener('click', exportPlanToExcel);
+
+    // Dynamic Savings Checkbox and Add Line Button in Modal
+    const hasSavingsCheck = document.getElementById('form-act-has-savings-check');
+    const savingsContainer = document.getElementById('form-act-savings-container');
+    if (hasSavingsCheck && savingsContainer) {
+        hasSavingsCheck.addEventListener('change', (e) => {
+            if (e.target.checked) {
+                savingsContainer.style.display = 'block';
+                if (currentModalSavingsLines.length === 0) {
+                    addSavingsLineToModal();
+                }
+            } else {
+                savingsContainer.style.display = 'none';
+            }
+        });
+    }
+
+    const btnAddSavingsLine = document.getElementById('btn-add-savings-line');
+    if (btnAddSavingsLine) {
+        btnAddSavingsLine.addEventListener('click', () => {
+            addSavingsLineToModal();
+        });
+    }
+
+    // Plan Activity Form Submit Handler
+    const actForm = document.getElementById('activity-form');
+    if (actForm) {
+        actForm.addEventListener('submit', async (e) => {
+            e.preventDefault();
+
+            const editId = document.getElementById('form-act-id').value;
+            const titleVal = document.getElementById('form-act-title').value;
+            const userVal = document.getElementById('form-act-user').value;
+            const targetDateVal = document.getElementById('form-act-target-date').value;
+            const closeDateVal = document.getElementById('form-act-close-date').value;
+            const statusVal = document.getElementById('form-act-status').value;
+            const priorityVal = document.getElementById('form-act-priority').value;
+            const minutesVal = parseInt(document.getElementById('form-act-minutes').value) || 60;
+            const progressVal = parseInt(document.getElementById('form-act-progress').value) || 0;
+            const commentsVal = document.getElementById('form-act-comments').value;
+            const nextActionVal = document.getElementById('form-act-next-action').value;
+
+            const isSavingsChecked = hasSavingsCheck ? hasSavingsCheck.checked : false;
+
+            let savingsLines = [];
+            let targetSavingsVal = 0;
+            let actualSavingsVal = 0;
+            let savingsTypeVal = '-';
+
+            if (isSavingsChecked) {
+                savingsLines = JSON.parse(JSON.stringify(currentModalSavingsLines));
+                savingsLines.forEach(line => {
+                    targetSavingsVal += parseFloat(line.targetSavings || 0);
+                    actualSavingsVal += parseFloat(line.actualSavings || 0);
+                });
+                if (savingsLines.length > 0) {
+                    const uniqueTypes = [...new Set(savingsLines.map(l => l.savingsType || 'Hard'))];
+                    savingsTypeVal = uniqueTypes.length === 1 ? uniqueTypes[0] : uniqueTypes.join(', ');
+                }
+            }
+
+            const fileInput = document.getElementById('form-act-attachments');
+
+            let attachments = [];
+            if (editId) {
+                const existing = state.planActivities.find(b => b.id === editId);
+                if (existing && existing.attachments) attachments = [...existing.attachments];
+            }
+
+            if (fileInput && fileInput.files && fileInput.files.length > 0) {
+                const filePromises = Array.from(fileInput.files).map(file => {
+                    return new Promise((resolve) => {
+                        const reader = new FileReader();
+                        const isImage = file.type.startsWith('image/');
+                        const isVideo = file.type.startsWith('video/');
+                        let type = 'document';
+                        if (isImage) type = 'image';
+                        else if (isVideo) type = 'video';
+                        else if (file.name.endsWith('.pdf')) type = 'pdf';
+                        else if (file.name.endsWith('.xlsx') || file.name.endsWith('.xls')) type = 'excel';
+                        else if (file.name.endsWith('.docx') || file.name.endsWith('.doc')) type = 'word';
+                        else if (file.name.endsWith('.pptx') || file.name.endsWith('.ppt')) type = 'powerpoint';
+
+                        reader.onload = function(evt) {
+                            resolve({
+                                id: 'att-' + Math.floor(Math.random() * 10000),
+                                name: file.name,
+                                type: type,
+                                size: (file.size / (1024 * 1024)).toFixed(1) + ' MB',
+                                date: new Date().toISOString().split('T')[0],
+                                userName: userVal,
+                                dataUrl: (isImage || isVideo) ? evt.target.result : null
+                            });
+                        };
+                        reader.readAsDataURL(file);
+                    });
+                });
+                const newAtts = await Promise.all(filePromises);
+                attachments = [...attachments, ...newAtts];
+            }
+
+            const itemData = {
+                id: editId || "ACT-" + Math.floor(100 + Math.random() * 900),
+                activity: titleVal,
+                userName: userVal,
+                targetDate: targetDateVal,
+                closeDate: closeDateVal,
+                status: statusVal,
+                priority: priorityVal,
+                minutes: minutesVal,
+                progress: progressVal,
+                hasSavings: isSavingsChecked ? 'si' : 'no',
+                savingsType: savingsTypeVal,
+                targetSavings: targetSavingsVal,
+                actualSavings: actualSavingsVal,
+                savingsAmount: actualSavingsVal,
+                savingsLines: savingsLines,
+                comments: commentsVal,
+                nextAction: nextActionVal,
+                attachments: attachments
+            };
+
+            await savePlanActivityToPersistence(itemData);
+            document.getElementById('activity-modal').classList.remove('show');
+            renderPlanActividadesView();
+        });
+    }
+
+    // ==========================================
+    // EXISTING PROJECT BINDINGS
+    // ==========================================
 
     document.getElementById('btn-new-project-top').addEventListener('click', () => openProjectModal());
     document.getElementById('btn-new-project-list').addEventListener('click', () => openProjectModal());
@@ -1842,9 +4085,6 @@ async function inicializarAplicacion() {
             }
         } catch (err) {
             console.error("Error detallado al guardar el proyecto en Supabase:", err);
-            if (err.message) console.error("Mensaje:", err.message);
-            if (err.details) console.error("Detalles:", err.details);
-            if (err.hint) console.error("Pista:", err.hint);
             showFriendlyError("No se pudo guardar el proyecto en Supabase. (Error: " + (err.message || err) + ")");
             alert("Error al guardar el proyecto: " + (err.message || JSON.stringify(err)));
         }
@@ -1877,16 +4117,21 @@ async function inicializarAplicacion() {
 
     const filterSelectors = ['filter-lean-resp', 'filter-owner', 'filter-co-leader', 'filter-area', 'filter-category', 'filter-status', 'filter-priority', 'filter-aging'];
     filterSelectors.forEach(fid => {
-        document.getElementById(fid).addEventListener('change', renderProjectsTable);
+        const el = document.getElementById(fid);
+        if (el) el.addEventListener('change', renderProjectsTable);
     });
     
-    document.getElementById('btn-clear-filters').addEventListener('click', () => {
-        filterSelectors.forEach(fid => {
-            document.getElementById(fid).value = "";
+    const btnClearProjFilters = document.getElementById('btn-clear-filters');
+    if (btnClearProjFilters) {
+        btnClearProjFilters.addEventListener('click', () => {
+            filterSelectors.forEach(fid => {
+                const el = document.getElementById(fid);
+                if (el) el.value = "";
+            });
+            document.getElementById('global-search').value = "";
+            renderProjectsTable();
         });
-        document.getElementById('global-search').value = "";
-        renderProjectsTable();
-    });
+    }
 
     document.querySelectorAll('#main-projects-table th.sortable').forEach(th => {
         th.addEventListener('click', () => {
@@ -1907,19 +4152,29 @@ async function inicializarAplicacion() {
         });
     });
 
-    document.getElementById('btn-export-excel').addEventListener('click', exportProjectsToExcel);
-    document.getElementById('btn-download-template').addEventListener('click', downloadExcelTemplate);
-    
-    document.getElementById('btn-import-excel-trigger').addEventListener('click', () => {
-        document.getElementById('excel-file-input').click();
-    });
-    
-    document.getElementById('excel-file-input').addEventListener('change', (e) => {
-        const file = e.target.files[0];
-        if (file) importProjectsFromExcel(file);
-    });
+    const btnExportExcel = document.getElementById('btn-export-excel');
+    if (btnExportExcel) btnExportExcel.addEventListener('click', exportProjectsToExcel);
 
-    document.getElementById('btn-export-pdf').addEventListener('click', exportDashboardToPDF);
+    const btnDlTemplate = document.getElementById('btn-download-template');
+    if (btnDlTemplate) btnDlTemplate.addEventListener('click', downloadExcelTemplate);
+    
+    const btnImportExcelTrig = document.getElementById('btn-import-excel-trigger');
+    if (btnImportExcelTrig) {
+        btnImportExcelTrig.addEventListener('click', () => {
+            document.getElementById('excel-file-input').click();
+        });
+    }
+    
+    const excelFileInput = document.getElementById('excel-file-input');
+    if (excelFileInput) {
+        excelFileInput.addEventListener('change', (e) => {
+            const file = e.target.files[0];
+            if (file) importProjectsFromExcel(file);
+        });
+    }
+
+    const btnExportPdf = document.getElementById('btn-export-pdf');
+    if (btnExportPdf) btnExportPdf.addEventListener('click', exportDashboardToPDF);
 
     const btnCloseDrilldown = document.getElementById('btn-close-drilldown');
     if (btnCloseDrilldown) {
@@ -1928,22 +4183,27 @@ async function inicializarAplicacion() {
         });
     }
 
-    // Bind pagination next/prev click actions
-    document.getElementById('btn-page-prev').addEventListener('click', () => {
-        if (state.currentPage > 1) {
-            state.currentPage--;
-            renderProjectsTable();
-        }
-    });
+    const btnPagePrev = document.getElementById('btn-page-prev');
+    if (btnPagePrev) {
+        btnPagePrev.addEventListener('click', () => {
+            if (state.currentPage > 1) {
+                state.currentPage--;
+                renderProjectsTable();
+            }
+        });
+    }
 
-    document.getElementById('btn-page-next').addEventListener('click', () => {
-        const total = getFilteredProjects().length;
-        const maxPage = Math.ceil(total / (state.rowsPerPage || 10)) || 1;
-        if (state.currentPage < maxPage) {
-            state.currentPage++;
-            renderProjectsTable();
-        }
-    });
+    const btnPageNext = document.getElementById('btn-page-next');
+    if (btnPageNext) {
+        btnPageNext.addEventListener('click', () => {
+            const total = getFilteredProjects().length;
+            const maxPage = Math.ceil(total / (state.rowsPerPage || 10)) || 1;
+            if (state.currentPage < maxPage) {
+                state.currentPage++;
+                renderProjectsTable();
+            }
+        });
+    }
 }
 
 document.addEventListener('DOMContentLoaded', () => {

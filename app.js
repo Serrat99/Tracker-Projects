@@ -278,7 +278,11 @@ function getSemaphoreClass(aging, status) {
     return 'sem-rojo-oscuro';
 }
 
-// 4. Persistence Engine (Migrated 100% to Supabase)
+// 4. Persistence Engine (Configurable: LocalStorage / Supabase)
+function isSupabaseEnabled() {
+    return window.modoSupabase === true && !!window.supabaseClient && window.SUPABASE_URL !== "YOUR_SUPABASE_URL";
+}
+
 function showToastNotification(message, type = 'error') {
     let container = document.getElementById('toast-container');
     if (!container) {
@@ -332,10 +336,18 @@ function showFriendlyError(message) {
 }
 
 async function fetchProjectsFromSupabase() {
-    if (!window.supabaseClient || window.SUPABASE_URL === "YOUR_SUPABASE_URL") {
-        console.error("Supabase no está configurado.");
-        showFriendlyError("El servicio de base de datos no está configurado en config.js.");
-        state.projects = JSON.parse(JSON.stringify(MOCK_PROJECTS));
+    if (!isSupabaseEnabled()) {
+        const local = localStorage.getItem('lean_tracker_projects');
+        if (local) {
+            try {
+                state.projects = JSON.parse(local);
+            } catch (e) {
+                state.projects = JSON.parse(JSON.stringify(MOCK_PROJECTS));
+            }
+        } else {
+            state.projects = JSON.parse(JSON.stringify(MOCK_PROJECTS));
+            localStorage.setItem('lean_tracker_projects', JSON.stringify(state.projects));
+        }
         return;
     }
     
@@ -389,7 +401,7 @@ async function fetchProjectsFromSupabase() {
 }
 
 function setupSupabaseRealtime() {
-    if (!window.supabaseClient || window.SUPABASE_URL === "YOUR_SUPABASE_URL") return;
+    if (!isSupabaseEnabled()) return;
     
     window.supabaseClient
         .channel('schema-db-changes')
@@ -1432,6 +1444,17 @@ function renderProjectsTable() {
 // 10. CRUD logic details for projects
 async function deleteProject(id) {
     if (confirm("¿Está seguro de eliminar este proyecto?\n\nPresione Aceptar para Confirmar Eliminación o Cancelar.")) {
+        if (!isSupabaseEnabled()) {
+            state.projects = state.projects.filter(p => p.id !== id);
+            localStorage.setItem('lean_tracker_projects', JSON.stringify(state.projects));
+            if (state.currentView === 'project-detail') {
+                switchView('projects');
+            } else {
+                populateFilters();
+                renderProjectsTable();
+            }
+            return;
+        }
         try {
             const { error } = await window.supabaseClient
                 .from('projects')
@@ -1467,6 +1490,16 @@ async function duplicateProject(id) {
         updated_at: new Date().toISOString()
     };
     
+    if (!isSupabaseEnabled()) {
+        const maxId = state.projects.length > 0 ? Math.max(...state.projects.map(p => p.id || 0)) : 100;
+        const newProj = { ...clone, id: maxId + 1 };
+        state.projects.unshift(newProj);
+        localStorage.setItem('lean_tracker_projects', JSON.stringify(state.projects));
+        populateFilters();
+        renderProjectsTable();
+        return;
+    }
+
     try {
         const { error } = await window.supabaseClient
             .from('projects')
@@ -1883,6 +1916,18 @@ function importProjectsFromExcel(file) {
                 projectsToUpsert.push(newProj);
             });
             
+            if (!isSupabaseEnabled()) {
+                projectsToUpsert.forEach(newP => {
+                    const idx = state.projects.findIndex(p => p.id === newP.id);
+                    if (idx >= 0) state.projects[idx] = newP;
+                    else state.projects.unshift(newP);
+                });
+                localStorage.setItem('lean_tracker_projects', JSON.stringify(state.projects));
+                alert(`Se importaron exitosamente ${projectsToUpsert.length} proyectos.`);
+                switchView('projects');
+                return;
+            }
+
             const { error } = await window.supabaseClient
                 .from('projects')
                 .upsert(projectsToUpsert, { onConflict: 'id' });
@@ -1943,10 +1988,18 @@ function exportDashboardToPDF() {
 let planCharts = {};
 
 async function fetchPlanActivitiesFromSupabase() {
-    if (!window.supabaseClient || window.SUPABASE_URL === "YOUR_SUPABASE_URL") {
-        console.error("Supabase no está configurado.");
-        showFriendlyError("El servicio de base de datos no está configurado en config.js.");
-        state.planActivities = JSON.parse(JSON.stringify(MOCK_ACTIVITIES));
+    if (!isSupabaseEnabled()) {
+        const local = localStorage.getItem('lean_tracker_plan_activities');
+        if (local) {
+            try {
+                state.planActivities = JSON.parse(local);
+            } catch (e) {
+                state.planActivities = JSON.parse(JSON.stringify(MOCK_ACTIVITIES));
+            }
+        } else {
+            state.planActivities = JSON.parse(JSON.stringify(MOCK_ACTIVITIES));
+            localStorage.setItem('lean_tracker_plan_activities', JSON.stringify(state.planActivities));
+        }
         return;
     }
 
@@ -2020,8 +2073,8 @@ async function savePlanActivityToPersistence(item) {
         state.planActivities.unshift(item);
     }
 
-    if (!window.supabaseClient || window.SUPABASE_URL === "YOUR_SUPABASE_URL") {
-        showToastNotification("Supabase no configurado. Cambio en memoria.", "error");
+    if (!isSupabaseEnabled()) {
+        localStorage.setItem('lean_tracker_plan_activities', JSON.stringify(state.planActivities));
         return;
     }
 
@@ -2052,8 +2105,8 @@ async function savePlanActivityToPersistence(item) {
 async function deletePlanActivityFromPersistence(id) {
     state.planActivities = state.planActivities.filter(b => b.id !== id);
 
-    if (!window.supabaseClient || window.SUPABASE_URL === "YOUR_SUPABASE_URL") {
-        showToastNotification("Supabase no configurado. Eliminado en memoria.", "error");
+    if (!isSupabaseEnabled()) {
+        localStorage.setItem('lean_tracker_plan_activities', JSON.stringify(state.planActivities));
         return;
     }
 
@@ -2635,8 +2688,18 @@ function getResponsablesMetricsFromActivities() {
 }
 
 async function fetchResponsablesFromSupabase() {
-    if (!window.supabaseClient || window.SUPABASE_URL === "YOUR_SUPABASE_URL") {
-        state.responsables = getResponsablesMetricsFromActivities();
+    if (!isSupabaseEnabled()) {
+        const local = localStorage.getItem('lean_tracker_responsables');
+        if (local) {
+            try {
+                state.responsables = JSON.parse(local);
+            } catch (e) {
+                state.responsables = getResponsablesMetricsFromActivities();
+            }
+        } else {
+            state.responsables = getResponsablesMetricsFromActivities();
+            localStorage.setItem('lean_tracker_responsables', JSON.stringify(state.responsables));
+        }
         updateTeamUsersDatalist();
         return;
     }
@@ -2676,19 +2739,21 @@ async function fetchResponsablesFromSupabase() {
 
 async function saveResponsablesToSupabase() {
     updateTeamUsersDatalist();
-    if (window.supabaseClient && window.SUPABASE_URL !== "YOUR_SUPABASE_URL") {
-        try {
-            const { error } = await window.supabaseClient
-                .from('responsables')
-                .upsert(state.responsables);
+    if (!isSupabaseEnabled()) {
+        localStorage.setItem('lean_tracker_responsables', JSON.stringify(state.responsables));
+        return;
+    }
+    try {
+        const { error } = await window.supabaseClient
+            .from('responsables')
+            .upsert(state.responsables);
 
-            if (error) {
-                console.error("Error al guardar responsables en Supabase:", error);
-                showToastNotification("Error al guardar responsables en Supabase: " + error.message, "error");
-            }
-        } catch (err) {
-            console.error("Excepción al guardar responsables:", err);
+        if (error) {
+            console.error("Error al guardar responsables en Supabase:", error);
+            showToastNotification("Error al guardar responsables en Supabase: " + error.message, "error");
         }
+    } catch (err) {
+        console.error("Excepción al guardar responsables:", err);
     }
 }
 
@@ -2696,28 +2761,41 @@ async function deleteResponsableFromSupabase(id) {
     state.responsables = state.responsables.filter(r => r.id !== id);
     updateTeamUsersDatalist();
 
-    if (window.supabaseClient && window.SUPABASE_URL !== "YOUR_SUPABASE_URL") {
-        try {
-            const { error } = await window.supabaseClient
-                .from('responsables')
-                .delete()
-                .eq('id', id);
+    if (!isSupabaseEnabled()) {
+        localStorage.setItem('lean_tracker_responsables', JSON.stringify(state.responsables));
+        return;
+    }
 
-            if (error) {
-                console.error("Error al eliminar responsable en Supabase:", error);
-                showToastNotification("Error al eliminar responsable en Supabase: " + error.message, "error");
-            } else {
-                showToastNotification("Responsable eliminado en Supabase.", "success");
-            }
-        } catch (err) {
-            console.error("Excepción al eliminar responsable:", err);
+    try {
+        const { error } = await window.supabaseClient
+            .from('responsables')
+            .delete()
+            .eq('id', id);
+
+        if (error) {
+            console.error("Error al eliminar responsable en Supabase:", error);
+            showToastNotification("Error al eliminar responsable en Supabase: " + error.message, "error");
+        } else {
+            showToastNotification("Responsable eliminado en Supabase.", "success");
         }
+    } catch (err) {
+        console.error("Excepción al eliminar responsable:", err);
     }
 }
 
 async function fetchSavingsRecordsFromSupabase() {
-    if (!window.supabaseClient || window.SUPABASE_URL === "YOUR_SUPABASE_URL") {
-        state.savingsRecords = JSON.parse(JSON.stringify(DEFAULT_SAVINGS_RECORDS));
+    if (!isSupabaseEnabled()) {
+        const local = localStorage.getItem('lean_tracker_savings_records');
+        if (local) {
+            try {
+                state.savingsRecords = JSON.parse(local);
+            } catch (e) {
+                state.savingsRecords = JSON.parse(JSON.stringify(DEFAULT_SAVINGS_RECORDS));
+            }
+        } else {
+            state.savingsRecords = JSON.parse(JSON.stringify(DEFAULT_SAVINGS_RECORDS));
+            localStorage.setItem('lean_tracker_savings_records', JSON.stringify(state.savingsRecords));
+        }
         return;
     }
 
@@ -2760,43 +2838,49 @@ async function saveSavingsRecordToSupabase(item) {
         state.savingsRecords.unshift(item);
     }
 
-    if (window.supabaseClient && window.SUPABASE_URL !== "YOUR_SUPABASE_URL") {
-        try {
-            const { error } = await window.supabaseClient
-                .from('savings_records')
-                .upsert([item]);
+    if (!isSupabaseEnabled()) {
+        localStorage.setItem('lean_tracker_savings_records', JSON.stringify(state.savingsRecords));
+        return;
+    }
 
-            if (error) {
-                console.error("Error al guardar registro de ahorro en Supabase:", error);
-                showToastNotification("Error al guardar registro de ahorro en Supabase: " + error.message, "error");
-            } else {
-                showToastNotification("Registro de ahorro guardado en Supabase.", "success");
-            }
-        } catch (err) {
-            console.error("Excepción al guardar registro de ahorro:", err);
+    try {
+        const { error } = await window.supabaseClient
+            .from('savings_records')
+            .upsert([item]);
+
+        if (error) {
+            console.error("Error al guardar registro de ahorro en Supabase:", error);
+            showToastNotification("Error al guardar registro de ahorro en Supabase: " + error.message, "error");
+        } else {
+            showToastNotification("Registro de ahorro guardado en Supabase.", "success");
         }
+    } catch (err) {
+        console.error("Excepción al guardar registro de ahorro:", err);
     }
 }
 
 async function deleteSavingsRecordFromSupabase(id) {
     state.savingsRecords = state.savingsRecords.filter(s => s.id !== id);
 
-    if (window.supabaseClient && window.SUPABASE_URL !== "YOUR_SUPABASE_URL") {
-        try {
-            const { error } = await window.supabaseClient
-                .from('savings_records')
-                .delete()
-                .eq('id', id);
+    if (!isSupabaseEnabled()) {
+        localStorage.setItem('lean_tracker_savings_records', JSON.stringify(state.savingsRecords));
+        return;
+    }
 
-            if (error) {
-                console.error("Error al eliminar registro de ahorro en Supabase:", error);
-                showToastNotification("Error al eliminar registro de ahorro en Supabase: " + error.message, "error");
-            } else {
-                showToastNotification("Registro de ahorro eliminado en Supabase.", "success");
-            }
-        } catch (err) {
-            console.error("Excepción al eliminar registro de ahorro:", err);
+    try {
+        const { error } = await window.supabaseClient
+            .from('savings_records')
+            .delete()
+            .eq('id', id);
+
+        if (error) {
+            console.error("Error al eliminar registro de ahorro en Supabase:", error);
+            showToastNotification("Error al eliminar registro de ahorro en Supabase: " + error.message, "error");
+        } else {
+            showToastNotification("Registro de ahorro eliminado en Supabase.", "success");
         }
+    } catch (err) {
+        console.error("Excepción al eliminar registro de ahorro:", err);
     }
 }
 
@@ -4315,6 +4399,25 @@ async function inicializarAplicacion() {
             updated_at: new Date().toISOString()
         };
         
+        if (!isSupabaseEnabled()) {
+            if (idInput) {
+                const id = parseInt(idInput);
+                const idx = state.projects.findIndex(p => p.id === id);
+                if (idx >= 0) state.projects[idx] = { ...state.projects[idx], ...projectData, id };
+            } else {
+                const maxId = state.projects.length > 0 ? Math.max(...state.projects.map(p => p.id || 0)) : 100;
+                state.projects.unshift({ ...projectData, id: maxId + 1 });
+            }
+            localStorage.setItem('lean_tracker_projects', JSON.stringify(state.projects));
+            document.getElementById('project-modal').classList.remove('show');
+            if (state.currentView === 'project-detail') {
+                viewProjectDetails(state.currentProjectId);
+            } else {
+                switchView('projects');
+            }
+            return;
+        }
+
         try {
             if (idInput) {
                 const id = parseInt(idInput);

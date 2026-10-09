@@ -1,4 +1,6 @@
-// Configuración de conexión de Supabase
+// Configuración de conexión de Supabase y Modo de Almacenamiento
+window.modoSupabase = false; // Cambiar a true cuando las tablas existan en Supabase
+
 window.SUPABASE_URL = "https://hgghnalxypgunppnrqgg.supabase.co";
 window.SUPABASE_ANON_KEY = "sb_publishable_KanGD_oOzUo9YdRxTw5BhA_5rMzakRm";
 
